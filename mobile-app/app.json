@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "AntiADHD",
+    "slug": "antiadhd",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "antiadhd",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#18202f"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#18202f"
+      }
+    },
+    "extra": {
+      "apiBaseUrl": "http://localhost:8080/api"
+    }
+  }
+}
+

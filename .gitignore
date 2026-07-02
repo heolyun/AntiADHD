@@ -2,6 +2,10 @@ node_modules/
 dist/
 build/
 target/
+.expo/
+.expo-shared/
+android/
+ios/
 .env
 .env.*
 !.env.example
@@ -9,4 +13,3 @@ target/
 .vscode/
 *.iml
 *.log
-
