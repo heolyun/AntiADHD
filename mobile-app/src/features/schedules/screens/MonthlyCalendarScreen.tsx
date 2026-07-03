@@ -19,7 +19,7 @@ export function MonthlyCalendarScreen() {
 
   return (
     <Screen>
-      <Header eyebrow="Calendar" title={anchor.toLocaleDateString('en-US', { year: 'numeric', month: 'long' })} />
+      <Header eyebrow="월간 캘린더" title={anchor.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' })} />
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <ScrollView contentContainerStyle={styles.grid}>
         {days.map((day) => {
@@ -32,7 +32,7 @@ export function MonthlyCalendarScreen() {
               onPress={() => items[0] && navigation.navigate('ScheduleDetail', { scheduleId: items[0].id })}
             >
               <Text style={styles.dayNumber}>{day.getDate()}</Text>
-              {isLoading ? <Text style={styles.count}>...</Text> : <Text style={styles.count}>{items.length} items</Text>}
+              {isLoading ? <Text style={styles.count}>...</Text> : <Text style={styles.count}>{items.length}개</Text>}
               <View style={styles.dots}>
                 {items.slice(0, 4).map((item) => <View key={item.id} style={[styles.dot, { backgroundColor: item.color }]} />)}
               </View>

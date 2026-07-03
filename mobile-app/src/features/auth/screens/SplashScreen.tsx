@@ -8,7 +8,7 @@ export function SplashScreen() {
         <Text style={styles.markText}>A</Text>
       </View>
       <Text style={styles.title}>AntiADHD</Text>
-      <Text style={styles.subtitle}>Time Block Planner</Text>
+      <Text style={styles.subtitle}>타임블록 일정관리</Text>
     </View>
   );
 }
@@ -28,4 +28,3 @@ const styles = StyleSheet.create({
   title: { color: colors.text, fontSize: 30, fontWeight: '900' },
   subtitle: { color: colors.muted, marginTop: 6, fontWeight: '700' }
 });
-

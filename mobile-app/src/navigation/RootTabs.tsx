@@ -39,22 +39,22 @@ function MainTabs() {
       <Tab.Screen
         name="Home"
         component={HomeScreen}
-        options={{ title: 'Today', tabBarIcon: ({ focused }) => <TabIcon label="T" focused={focused} /> }}
+        options={{ title: '오늘', tabBarIcon: ({ focused }) => <TabIcon label="오늘" focused={focused} /> }}
       />
       <Tab.Screen
         name="WeeklySchedule"
         component={WeeklyScheduleScreen}
-        options={{ title: 'Week', tabBarIcon: ({ focused }) => <TabIcon label="W" focused={focused} /> }}
+        options={{ title: '주간', tabBarIcon: ({ focused }) => <TabIcon label="주" focused={focused} /> }}
       />
       <Tab.Screen
         name="MonthlyCalendar"
         component={MonthlyCalendarScreen}
-        options={{ title: 'Month', tabBarIcon: ({ focused }) => <TabIcon label="M" focused={focused} /> }}
+        options={{ title: '월간', tabBarIcon: ({ focused }) => <TabIcon label="월" focused={focused} /> }}
       />
       <Tab.Screen
         name="Settings"
         component={SettingsScreen}
-        options={{ title: 'Settings', tabBarIcon: ({ focused }) => <TabIcon label="S" focused={focused} /> }}
+        options={{ title: '설정', tabBarIcon: ({ focused }) => <TabIcon label="설정" focused={focused} /> }}
       />
     </Tab.Navigator>
   );
@@ -64,9 +64,8 @@ export function RootTabs() {
   return (
     <Stack.Navigator>
       <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
-      <Stack.Screen name="ScheduleDetail" component={ScheduleDetailScreen} options={{ title: 'Schedule Detail' }} />
-      <Stack.Screen name="ScheduleEdit" component={ScheduleEditScreen} options={{ title: 'Edit Schedule', presentation: 'modal' }} />
+      <Stack.Screen name="ScheduleDetail" component={ScheduleDetailScreen} options={{ title: '일정 상세' }} />
+      <Stack.Screen name="ScheduleEdit" component={ScheduleEditScreen} options={{ title: '일정 편집', presentation: 'modal' }} />
     </Stack.Navigator>
   );
 }
-

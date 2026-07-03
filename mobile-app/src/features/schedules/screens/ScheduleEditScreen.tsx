@@ -20,21 +20,21 @@ export function ScheduleEditScreen({ navigation, route }: ScheduleEditProps) {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.form}>
-        <Text style={styles.title}>{scheduleId ? 'Edit schedule' : 'New schedule'}</Text>
-        {isLoading ? <Text style={styles.muted}>Loading...</Text> : null}
-        <TextInput style={styles.input} placeholder="Title" value={form.title} onChangeText={(title) => setForm({ ...form, title })} />
+        <Text style={styles.title}>{scheduleId ? '일정 수정' : '일정 등록'}</Text>
+        {isLoading ? <Text style={styles.muted}>불러오는 중...</Text> : null}
+        <TextInput style={styles.input} placeholder="제목" value={form.title} onChangeText={(title) => setForm({ ...form, title })} />
         <TextInput
           style={[styles.input, styles.textarea]}
-          placeholder="Notes"
+          placeholder="메모"
           multiline
           value={form.description}
           onChangeText={(description) => setForm({ ...form, description })}
         />
-        <Text style={styles.label}>Start</Text>
+        <Text style={styles.label}>시작</Text>
         <TextInput style={styles.input} value={form.startAt} onChangeText={(startAt) => setForm({ ...form, startAt })} />
-        <Text style={styles.label}>End</Text>
+        <Text style={styles.label}>종료</Text>
         <TextInput style={styles.input} value={form.endAt} onChangeText={(endAt) => setForm({ ...form, endAt })} />
-        <Text style={styles.label}>Repeat</Text>
+        <Text style={styles.label}>반복</Text>
         <View style={styles.chips}>
           {repeatTypes.map((type) => (
             <Text key={type} onPress={() => setForm({ ...form, repeatType: type })} style={[styles.chip, form.repeatType === type && styles.activeChip]}>
@@ -42,14 +42,14 @@ export function ScheduleEditScreen({ navigation, route }: ScheduleEditProps) {
             </Text>
           ))}
         </View>
-        <Text style={styles.label}>Color</Text>
+        <Text style={styles.label}>색상</Text>
         <View style={styles.colors}>
           {scheduleColors.map((color) => (
             <Text key={color} onPress={() => setForm({ ...form, color })} style={[styles.color, { backgroundColor: color }, form.color === color && styles.activeColor]} />
           ))}
         </View>
         {error ? <Text style={styles.error}>{error}</Text> : null}
-        <Button title={scheduleId ? 'Save' : 'Create'} loading={isSaving} onPress={handleSave} />
+        <Button title={scheduleId ? '저장' : '등록'} loading={isSaving} onPress={handleSave} />
       </ScrollView>
     </Screen>
   );

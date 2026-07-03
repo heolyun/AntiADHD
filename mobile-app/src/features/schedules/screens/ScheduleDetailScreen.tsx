@@ -14,10 +14,10 @@ export function ScheduleDetailScreen({ navigation, route }: ScheduleDetailProps)
 
   function confirmDelete() {
     if (!schedule) return;
-    Alert.alert('Delete schedule', `Delete "${schedule.title}"?`, [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert('일정 삭제', `"${schedule.title}" 일정을 삭제할까요?`, [
+      { text: '취소', style: 'cancel' },
       {
-        text: 'Delete',
+        text: '삭제',
         style: 'destructive',
         onPress: async () => {
           await remove();
@@ -30,7 +30,7 @@ export function ScheduleDetailScreen({ navigation, route }: ScheduleDetailProps)
   if (isLoading) {
     return (
       <Screen>
-        <EmptyState text="Loading schedule..." />
+        <EmptyState text="일정을 불러오는 중..." />
       </Screen>
     );
   }
@@ -38,7 +38,7 @@ export function ScheduleDetailScreen({ navigation, route }: ScheduleDetailProps)
   if (!schedule) {
     return (
       <Screen>
-        <EmptyState text={error || 'Schedule not found.'} />
+        <EmptyState text={error || '일정을 찾을 수 없습니다.'} />
       </Screen>
     );
   }
@@ -48,23 +48,23 @@ export function ScheduleDetailScreen({ navigation, route }: ScheduleDetailProps)
       <Header eyebrow={formatDate(schedule.startAt)} title={schedule.title} />
       <View style={styles.card}>
         <View style={[styles.colorBar, { backgroundColor: schedule.color }]} />
-        <Text style={styles.label}>Time</Text>
+        <Text style={styles.label}>시간</Text>
         <Text style={styles.value}>{formatTime(schedule.startAt)} - {formatTime(schedule.endAt)}</Text>
-        <Text style={styles.label}>Repeat</Text>
+        <Text style={styles.label}>반복</Text>
         <Text style={styles.value}>{repeatLabels[schedule.repeatType]}</Text>
-        <Text style={styles.label}>Status</Text>
-        <Text style={styles.value}>{schedule.completed ? 'Completed' : 'Open'}</Text>
+        <Text style={styles.label}>상태</Text>
+        <Text style={styles.value}>{schedule.completed ? '완료' : '진행 중'}</Text>
         {schedule.description ? (
           <>
-            <Text style={styles.label}>Notes</Text>
+            <Text style={styles.label}>메모</Text>
             <Text style={styles.description}>{schedule.description}</Text>
           </>
         ) : null}
       </View>
       <View style={styles.actions}>
-        <Button title={schedule.completed ? 'Mark open' : 'Mark done'} variant="secondary" onPress={toggleComplete} />
-        <Button title="Edit" onPress={() => navigation.navigate('ScheduleEdit', { scheduleId: schedule.id })} />
-        <Button title="Delete" variant="danger" onPress={confirmDelete} />
+        <Button title={schedule.completed ? '미완료로 변경' : '완료 체크'} variant="secondary" onPress={toggleComplete} />
+        <Button title="수정" onPress={() => navigation.navigate('ScheduleEdit', { scheduleId: schedule.id })} />
+        <Button title="삭제" variant="danger" onPress={confirmDelete} />
       </View>
     </Screen>
   );
@@ -78,4 +78,3 @@ const styles = StyleSheet.create({
   description: { color: colors.text, lineHeight: 22 },
   actions: { gap: 10, marginTop: 18 }
 });
-

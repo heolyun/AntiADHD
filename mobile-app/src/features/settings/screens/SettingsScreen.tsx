@@ -15,18 +15,18 @@ export function SettingsScreen() {
 
   return (
     <Screen>
-      <Header eyebrow="Settings" title="Account" />
+      <Header eyebrow="설정" title="내 정보" />
       <View style={styles.card}>
-        <Text style={styles.label}>Name</Text>
+        <Text style={styles.label}>이름</Text>
         <Text style={styles.value}>{user?.name}</Text>
-        <Text style={styles.label}>Email</Text>
+        <Text style={styles.label}>이메일</Text>
         <Text style={styles.value}>{user?.email}</Text>
       </View>
       <View style={styles.card}>
-        <Text style={styles.label}>API server</Text>
+        <Text style={styles.label}>API 서버</Text>
         <Text style={styles.value}>{apiUrl}</Text>
       </View>
-      <Button title="Logout" variant="danger" onPress={logout} />
+      <Button title="로그아웃" variant="danger" onPress={logout} />
     </Screen>
   );
 }
@@ -44,4 +44,3 @@ const styles = StyleSheet.create({
   label: { color: colors.muted, fontSize: 12, fontWeight: '900', marginTop: 6 },
   value: { color: colors.text, fontSize: 16, fontWeight: '800' }
 });
-

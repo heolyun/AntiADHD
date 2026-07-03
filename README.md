@@ -140,7 +140,7 @@ SPRING_DATASOURCE_USERNAME=antiadhd
 SPRING_DATASOURCE_PASSWORD=antiadhd
 JWT_SECRET=replace-with-at-least-32-characters-secret
 JWT_EXPIRATION_MS=86400000
-CORS_ALLOWED_ORIGINS=http://localhost:19006,http://localhost:8081
+CORS_ALLOWED_ORIGINS=http://localhost:19006,http://localhost:8081,http://localhost:8082,http://127.0.0.1:19006,http://127.0.0.1:8081,http://127.0.0.1:8082
 ```
 
 Health check:
@@ -178,7 +178,7 @@ BACKEND_PORT=8080
 
 JWT_SECRET=replace-with-at-least-32-characters-secret
 JWT_EXPIRATION_MS=86400000
-CORS_ALLOWED_ORIGINS=http://localhost:19006,http://localhost:8081
+CORS_ALLOWED_ORIGINS=http://localhost:19006,http://localhost:8081,http://localhost:8082,http://127.0.0.1:19006,http://127.0.0.1:8081,http://127.0.0.1:8082
 EXPO_PUBLIC_API_BASE_URL=http://localhost:8080/api
 ```
 
@@ -246,4 +246,3 @@ No Kubernetes YAML is included yet. The application is structured for a later on
 - `/actuator/health` is available for readiness/liveness probes.
 - Config can be supplied later through Kubernetes `ConfigMap` and `Secret`.
 - AWS SDK, AWS auth, cloud-specific scripts, and cloud service dependencies are intentionally excluded.
-

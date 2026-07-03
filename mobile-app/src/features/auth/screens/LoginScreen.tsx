@@ -15,17 +15,28 @@ export function LoginScreen({ navigation }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
+  function submit() {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !password) {
+      return run(async () => {
+        throw new Error('이메일과 비밀번호를 입력해주세요.');
+      });
+    }
+
+    return run(() => login({ email: trimmedEmail, password }));
+  }
+
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
       <View style={styles.panel}>
         <Text style={styles.logo}>AntiADHD</Text>
-        <Text style={styles.title}>Plan your next block</Text>
-        <TextInput style={styles.input} placeholder="Email" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} />
-        <TextInput style={styles.input} placeholder="Password" secureTextEntry value={password} onChangeText={setPassword} />
+        <Text style={styles.title}>오늘의 시간을 정리하세요</Text>
+        <TextInput style={styles.input} placeholder="이메일" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} />
+        <TextInput style={styles.input} placeholder="비밀번호" secureTextEntry value={password} onChangeText={setPassword} />
         {error ? <Text style={styles.error}>{error}</Text> : null}
-        <Button title="Login" loading={isLoading} onPress={() => run(() => login({ email, password }))} />
+        <Button title="로그인" loading={isLoading} onPress={submit} />
         <Pressable onPress={() => navigation.navigate('Signup')}>
-          <Text style={styles.link}>Create an account</Text>
+          <Text style={styles.link}>처음이라면 회원가입</Text>
         </Pressable>
       </View>
     </KeyboardAvoidingView>
@@ -48,4 +59,3 @@ const styles = StyleSheet.create({
   error: { color: colors.danger, fontWeight: '700' },
   link: { textAlign: 'center', color: colors.primary, fontWeight: '800', padding: 8 }
 });
-

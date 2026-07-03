@@ -16,18 +16,35 @@ export function SignupScreen({ navigation }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
+  function submit() {
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim();
+    if (!trimmedName || !trimmedEmail || !password) {
+      return run(async () => {
+        throw new Error('이름, 이메일, 비밀번호를 입력해주세요.');
+      });
+    }
+    if (password.length < 8) {
+      return run(async () => {
+        throw new Error('비밀번호는 8자 이상이어야 합니다.');
+      });
+    }
+
+    return run(() => signup({ name: trimmedName, email: trimmedEmail, password }));
+  }
+
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
       <View style={styles.panel}>
         <Text style={styles.logo}>AntiADHD</Text>
-        <Text style={styles.title}>Create account</Text>
-        <TextInput style={styles.input} placeholder="Name" value={name} onChangeText={setName} />
-        <TextInput style={styles.input} placeholder="Email" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} />
-        <TextInput style={styles.input} placeholder="Password, 8+ characters" secureTextEntry value={password} onChangeText={setPassword} />
+        <Text style={styles.title}>계정 만들기</Text>
+        <TextInput style={styles.input} placeholder="이름" value={name} onChangeText={setName} />
+        <TextInput style={styles.input} placeholder="이메일" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} />
+        <TextInput style={styles.input} placeholder="비밀번호 8자 이상" secureTextEntry value={password} onChangeText={setPassword} />
         {error ? <Text style={styles.error}>{error}</Text> : null}
-        <Button title="Sign up" loading={isLoading} onPress={() => run(() => signup({ name, email, password }))} />
+        <Button title="회원가입" loading={isLoading} onPress={submit} />
         <Pressable onPress={() => navigation.navigate('Login')}>
-          <Text style={styles.link}>I already have an account</Text>
+          <Text style={styles.link}>이미 계정이 있어요</Text>
         </Pressable>
       </View>
     </KeyboardAvoidingView>
@@ -50,4 +67,3 @@ const styles = StyleSheet.create({
   error: { color: colors.danger, fontWeight: '700' },
   link: { textAlign: 'center', color: colors.primary, fontWeight: '800', padding: 8 }
 });
-

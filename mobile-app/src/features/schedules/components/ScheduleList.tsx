@@ -18,7 +18,7 @@ export function ScheduleList({ schedules, isLoading, onSelect, onToggle }: Sched
   }
 
   if (schedules.length === 0) {
-    return <EmptyState text="No schedules yet." />;
+    return <EmptyState text="아직 등록된 일정이 없습니다." />;
   }
 
   const sections = Object.entries(groupByDate(schedules));
@@ -54,4 +54,3 @@ const styles = StyleSheet.create({
   date: { color: colors.text, fontSize: 15, fontWeight: '900' },
   cards: { gap: 10 }
 });
-

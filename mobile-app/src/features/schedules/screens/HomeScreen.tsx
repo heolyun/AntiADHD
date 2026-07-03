@@ -19,13 +19,13 @@ export function HomeScreen() {
   return (
     <Screen>
       <Header
-        eyebrow="Today"
-        title={today.toLocaleDateString('en-US', { month: 'long', day: 'numeric', weekday: 'long' })}
-        right={<Button title="Add" onPress={() => navigation.navigate('ScheduleEdit')} />}
+        eyebrow="오늘 일정"
+        title={today.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' })}
+        right={<Button title="추가" onPress={() => navigation.navigate('ScheduleEdit')} />}
       />
       <View style={styles.summary}>
-        <Text style={styles.summaryText}>Total {schedules.length}</Text>
-        <Text style={styles.summaryText}>Done {schedules.filter((item) => item.completed).length}</Text>
+        <Text style={styles.summaryText}>전체 {schedules.length}</Text>
+        <Text style={styles.summaryText}>완료 {schedules.filter((item) => item.completed).length}</Text>
       </View>
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <ScheduleList

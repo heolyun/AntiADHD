@@ -17,26 +17,29 @@ export function useSchedules(range: ScheduleRange, anchorDate: Date) {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const anchorDateKey = toDateKey(anchorDate);
+  const anchorYear = anchorDate.getFullYear();
+  const anchorMonth = anchorDate.getMonth() + 1;
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
       if (range === 'today') {
-        setSchedules(await getTodaySchedules(toDateKey(anchorDate)));
+        setSchedules(await getTodaySchedules(anchorDateKey));
       }
       if (range === 'week') {
-        setSchedules(await getWeekSchedules(toDateKey(anchorDate)));
+        setSchedules(await getWeekSchedules(anchorDateKey));
       }
       if (range === 'month') {
-        setSchedules(await getMonthSchedules(anchorDate.getFullYear(), anchorDate.getMonth() + 1));
+        setSchedules(await getMonthSchedules(anchorYear, anchorMonth));
       }
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
       setIsLoading(false);
     }
-  }, [anchorDate, range]);
+  }, [anchorDateKey, anchorMonth, anchorYear, range]);
 
   useFocusEffect(useCallback(() => {
     refresh();
@@ -54,4 +57,3 @@ export function useSchedules(range: ScheduleRange, anchorDate: Date) {
 
   return { schedules, isLoading, error, refresh, toggleComplete, remove };
 }
-

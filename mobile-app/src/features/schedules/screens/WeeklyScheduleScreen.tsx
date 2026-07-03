@@ -19,7 +19,7 @@ export function WeeklyScheduleScreen() {
 
   return (
     <Screen>
-      <Header eyebrow="Time blocking" title="This week" />
+      <Header eyebrow="주간 타임블록" title="이번 주" />
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <ScrollView contentContainerStyle={styles.days}>
         {days.map((day) => {
@@ -27,9 +27,11 @@ export function WeeklyScheduleScreen() {
           const items = schedules.filter((item) => item.startAt.slice(0, 10) === key);
           return (
             <View key={key} style={styles.dayCard}>
-              <Text style={styles.dayTitle}>{day.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</Text>
-              {isLoading ? <Text style={styles.muted}>Loading...</Text> : null}
-              {!isLoading && items.length === 0 ? <Text style={styles.muted}>Empty</Text> : null}
+              <Text style={styles.dayTitle}>
+                {day.toLocaleDateString('ko-KR', { weekday: 'short', month: 'short', day: 'numeric' })}
+              </Text>
+              {isLoading ? <Text style={styles.muted}>불러오는 중...</Text> : null}
+              {!isLoading && items.length === 0 ? <Text style={styles.muted}>비어 있음</Text> : null}
               {items.map((item) => (
                 <Pressable key={item.id} style={styles.block} onPress={() => navigation.navigate('ScheduleDetail', { scheduleId: item.id })}>
                   <View style={[styles.dot, { backgroundColor: item.color }]} />
@@ -38,7 +40,7 @@ export function WeeklyScheduleScreen() {
                     <Text style={styles.title}>{item.title}</Text>
                   </View>
                   <Pressable onPress={() => toggleComplete(item)} style={styles.done}>
-                    <Text style={styles.doneText}>{item.completed ? 'Done' : 'Check'}</Text>
+                    <Text style={styles.doneText}>{item.completed ? '완료' : '체크'}</Text>
                   </Pressable>
                 </Pressable>
               ))}
