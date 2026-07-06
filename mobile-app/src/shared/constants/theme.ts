@@ -23,8 +23,8 @@ export const scheduleColors = [
 ];
 
 export const repeatLabels = {
-  NONE: '반복 없음',
-  DAILY: '매일',
-  WEEKLY: '매주',
-  MONTHLY: '매월'
+  NONE: '\uBC18\uBCF5 \uC5C6\uC74C',
+  DAILY: '\uB9E4\uC77C',
+  WEEKLY: '\uB9E4\uC8FC',
+  MONTHLY: '\uB9E4\uC6D4'
 } as const;

@@ -10,7 +10,8 @@ const repeatTypes: RepeatType[] = ['NONE', 'DAILY', 'WEEKLY', 'MONTHLY'];
 
 export function ScheduleEditScreen({ navigation, route }: ScheduleEditProps) {
   const scheduleId = route.params?.scheduleId;
-  const { form, setForm, isLoading, isSaving, error, save } = useScheduleEditor(scheduleId);
+  const selectedDate = route.params?.selectedDate;
+  const { form, setForm, isLoading, isSaving, error, save } = useScheduleEditor(scheduleId, selectedDate);
 
   async function handleSave() {
     await save();

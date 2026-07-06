@@ -8,10 +8,20 @@ export type Schedule = {
   endAt: string;
   color: string;
   repeatType: RepeatType;
+  category?: CategorySummary | null;
+  tags: TagSummary[];
   completed: boolean;
   createdAt: string;
   updatedAt: string;
 };
+
+export type CategorySummary = {
+  id: number;
+  name: string;
+  color: string;
+};
+
+export type TagSummary = CategorySummary;
 
 export type ScheduleRequest = {
   title: string;
@@ -20,5 +30,6 @@ export type ScheduleRequest = {
   endAt: string;
   color: string;
   repeatType: RepeatType;
+  categoryId?: number | null;
+  tagIds?: number[];
 };
-

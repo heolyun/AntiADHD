@@ -1,91 +1,88 @@
-# AntiADHD Time Blocking
+# AntiADHD
 
-React Native(Expo) 모바일 앱과 Spring Boot 백엔드로 구성한 개인 일정관리/Time Blocking 서비스입니다. 현재는 로컬 개발과 Docker Compose 실행을 목표로 하며, 향후 온프레미스 Kubernetes 환경으로 이전하기 쉬운 구조를 우선합니다.
+React Native Expo 앱과 Spring Boot API로 구성한 개인 일정관리/타임블록 기반 AI 생산성 관리 플랫폼 MVP입니다.
 
-## Architecture
+현재 AI 기능은 실제 외부 API를 호출하지 않고, 추후 OpenAI 등 모델 연동을 붙일 수 있도록 API 경계와 서비스 구조만 준비했습니다.
 
 ```text
 React Native App
   -> Spring Boot REST API
   -> PostgreSQL
+```
 
-Future runtime:
+향후 운영 목표는 온프레미스 Kubernetes 환경입니다.
+
+```text
 React Native App
   -> Spring Boot API
   -> Kubernetes
   -> PostgreSQL
 ```
 
-## Project Structure
+## 기술 스택
+
+- Frontend: React Native, Expo, TypeScript, React Navigation, Axios
+- Backend: Spring Boot, Spring Security, JWT, Spring Data JPA, Actuator
+- Database: PostgreSQL
+- Local Runtime: Docker Compose
+
+## 프로젝트 구조
 
 ```text
 AntiADHD/
   mobile-app/
-    App.tsx
     src/
       features/
+        ai/
         auth/
-          api/
-          context/
-          dto/
-          screens/
+        categories/
+        focus/
+        goals/
+        productivity/
+        reviews/
+        routines/
         schedules/
-          api/
-          components/
-          dto/
-          hooks/
-          screens/
         settings/
-          screens/
+        tags/
       navigation/
       shared/
-        api/
-        components/
-        constants/
-        hooks/
-        utils/
       types/
 
   backend/
-    Dockerfile
     src/main/java/com/antiadhd/
+      ai/
       auth/
+      category/
+      common/
       config/
+      focus/
+      goal/
+      review/
+      routine/
       schedule/
+      tag/
       user/
-    src/main/resources/application.yml
 
   docker-compose.yml
   .env.example
 ```
 
-## Features
+## 실행 방법
 
-- Signup
-- Login with JWT
-- Logout
-- Today schedules
-- Weekly schedule
-- Monthly calendar
-- Schedule detail
-- Schedule create/edit/delete
-- Schedule completion toggle
-- Repeat type storage: `NONE`, `DAILY`, `WEEKLY`, `MONTHLY`
+### Backend + PostgreSQL
 
-Repeat schedules are stored as a type only. Automatic recurring schedule generation is intentionally left for a later service-layer extension.
+```bash
+cp .env.example .env
+docker compose up --build
+```
 
-## Mobile App
+Health check:
 
-### Stack
+```text
+GET http://localhost:8080/actuator/health
+```
 
-- React Native
-- Expo
-- TypeScript
-- React Navigation
-- Axios
-- AsyncStorage
-
-### Run Expo
+### Expo App
 
 ```bash
 cd mobile-app
@@ -94,79 +91,21 @@ npm install
 npm run start
 ```
 
-Set the API URL in `mobile-app/.env`.
+웹으로 확인:
 
-```env
-EXPO_PUBLIC_API_BASE_URL=http://localhost:8080/api
+```bash
+npm run web
 ```
 
-When using a physical device with Expo Go, replace `localhost` with your PC LAN IP.
+Expo Go에서 실제 기기로 테스트할 때는 `mobile-app/.env`의 API 주소를 PC의 LAN IP로 변경합니다.
 
 ```env
 EXPO_PUBLIC_API_BASE_URL=http://192.168.0.10:8080/api
 ```
 
-For Android Emulator, use:
+## 환경변수
 
-```env
-EXPO_PUBLIC_API_BASE_URL=http://10.0.2.2:8080/api
-```
-
-## Backend
-
-### Stack
-
-- Spring Boot
-- Spring Security
-- JWT Authentication
-- Spring Data JPA
-- PostgreSQL
-- Spring Boot Actuator
-
-### Run Spring Boot Locally
-
-Java 17, Maven, and PostgreSQL are required.
-
-```bash
-cd backend
-mvn spring-boot:run
-```
-
-Required environment variables:
-
-```env
-SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/antiadhd
-SPRING_DATASOURCE_USERNAME=antiadhd
-SPRING_DATASOURCE_PASSWORD=antiadhd
-JWT_SECRET=replace-with-at-least-32-characters-secret
-JWT_EXPIRATION_MS=86400000
-CORS_ALLOWED_ORIGINS=http://localhost:19006,http://localhost:8081,http://localhost:8082,http://127.0.0.1:19006,http://127.0.0.1:8081,http://127.0.0.1:8082
-```
-
-Health check:
-
-```text
-GET /actuator/health
-```
-
-## Docker Compose
-
-React Native is not containerized. Docker Compose runs PostgreSQL and the backend API only.
-
-```bash
-cp .env.example .env
-docker compose up --build
-```
-
-Services:
-
-- PostgreSQL: `localhost:5432`
-- Backend API: `http://localhost:8080/api`
-- Health: `http://localhost:8080/actuator/health`
-
-## Environment Variables
-
-Root `.env` for Docker Compose:
+Root `.env`:
 
 ```env
 POSTGRES_DB=antiadhd
@@ -182,67 +121,164 @@ CORS_ALLOWED_ORIGINS=http://localhost:19006,http://localhost:8081,http://localho
 EXPO_PUBLIC_API_BASE_URL=http://localhost:8080/api
 ```
 
-Backend variables:
+Backend:
 
-| Name | Description |
+| 변수 | 설명 |
 | --- | --- |
 | `SPRING_DATASOURCE_URL` | PostgreSQL JDBC URL |
-| `SPRING_DATASOURCE_USERNAME` | PostgreSQL username |
-| `SPRING_DATASOURCE_PASSWORD` | PostgreSQL password |
-| `JPA_DDL_AUTO` | Hibernate schema mode. MVP default is `update` |
-| `JWT_SECRET` | JWT signing secret. Required |
-| `JWT_EXPIRATION_MS` | JWT expiration in milliseconds |
-| `CORS_ALLOWED_ORIGINS` | Comma-separated allowed origins |
+| `SPRING_DATASOURCE_USERNAME` | DB 사용자 |
+| `SPRING_DATASOURCE_PASSWORD` | DB 비밀번호 |
+| `JPA_DDL_AUTO` | Hibernate 스키마 모드. 로컬 기본값은 `update` |
+| `JWT_SECRET` | JWT 서명 키 |
+| `JWT_EXPIRATION_MS` | JWT 만료 시간 |
+| `CORS_ALLOWED_ORIGINS` | 허용할 Origin 목록 |
 
-Mobile variables:
+Mobile:
 
-| Name | Description |
+| 변수 | 설명 |
 | --- | --- |
-| `EXPO_PUBLIC_API_BASE_URL` | Spring Boot API base URL used by Axios |
+| `EXPO_PUBLIC_API_BASE_URL` | Axios가 호출할 Spring Boot API 주소 |
 
-## REST API
+## 주요 기능
 
-Schedule APIs require:
+- 회원가입, 로그인, 로그아웃
+- JWT 인증, 내 정보 조회
+- 일정 생성, 조회, 수정, 삭제
+- 일정 완료 체크
+- 오늘/주간/월간 일정 조회
+- 월간 캘린더 첫 화면 표시 및 저장된 일정 표시
+- 일정 색상, 반복 타입 저장
+- 카테고리/태그 관리
+- 루틴 관리
+- 목표 관리
+- Focus Mode
+- Daily Review
+- AI 추천 placeholder 구조
+
+모든 사용자 데이터는 로그인한 사용자 기준으로만 조회, 수정, 삭제됩니다.
+
+## 모바일 화면
+
+- Splash
+- 로그인
+- 회원가입
+- 월간 캘린더
+- 오늘 일정
+- 주간 일정
+- 일정 상세/등록/수정
+- 생산성 대시보드
+- 카테고리/태그 관리
+- 루틴 관리
+- 목표 관리
+- Focus Mode
+- Daily Review
+- 설정
+
+## API 목록
+
+일정, 카테고리, 태그, 루틴, 목표, Focus, Review, AI API는 JWT 인증이 필요합니다.
 
 ```text
 Authorization: Bearer <token>
 ```
 
-### Auth
+### Auth / User
 
-| Method | Path | Description |
+| Method | Path | 설명 |
 | --- | --- | --- |
-| POST | `/api/auth/signup` | Signup |
-| POST | `/api/auth/login` | Login and issue JWT |
+| POST | `/api/auth/signup` | 회원가입 |
+| POST | `/api/auth/login` | 로그인 및 JWT 발급 |
+| GET | `/api/users/me` | 내 정보 조회 |
 
 ### Schedules
 
-| Method | Path | Description |
+| Method | Path | 설명 |
 | --- | --- | --- |
-| POST | `/api/schedules` | Create schedule |
-| GET | `/api/schedules?from=2026-07-01T00:00:00&to=2026-08-01T00:00:00` | List schedules by range |
-| GET | `/api/schedules/{id}` | Get schedule detail |
-| PUT | `/api/schedules/{id}` | Update schedule |
-| PATCH | `/api/schedules/{id}/complete` | Toggle completion |
-| DELETE | `/api/schedules/{id}` | Delete schedule |
-| GET | `/api/schedules/today?date=2026-07-02` | Today schedules |
-| GET | `/api/schedules/week?date=2026-07-02` | Weekly schedules |
-| GET | `/api/schedules/month?year=2026&month=7` | Monthly schedules |
+| POST | `/api/schedules` | 일정 생성 |
+| GET | `/api/schedules` | 기간 일정 조회 |
+| GET | `/api/schedules/{id}` | 일정 상세 |
+| PUT | `/api/schedules/{id}` | 일정 수정 |
+| PATCH | `/api/schedules/{id}/complete` | 완료 상태 변경 |
+| DELETE | `/api/schedules/{id}` | 일정 삭제 |
+| GET | `/api/schedules/today?date=2026-07-03` | 오늘 일정 |
+| GET | `/api/schedules/week?date=2026-07-03` | 주간 일정 |
+| GET | `/api/schedules/month?year=2026&month=7` | 월간 일정 |
+
+일정 요청에는 `categoryId`, `tagIds`를 선택적으로 포함할 수 있습니다.
+
+### Categories / Tags
+
+| Method | Path | 설명 |
+| --- | --- | --- |
+| GET | `/api/categories` | 카테고리 목록 |
+| POST | `/api/categories` | 카테고리 생성 |
+| PUT | `/api/categories/{id}` | 카테고리 수정 |
+| DELETE | `/api/categories/{id}` | 카테고리 삭제 |
+| GET | `/api/tags` | 태그 목록 |
+| POST | `/api/tags` | 태그 생성 |
+| PUT | `/api/tags/{id}` | 태그 수정 |
+| DELETE | `/api/tags/{id}` | 태그 삭제 |
+
+### Routines
+
+| Method | Path | 설명 |
+| --- | --- | --- |
+| GET | `/api/routines` | 루틴 목록 |
+| POST | `/api/routines` | 루틴 생성 |
+| PUT | `/api/routines/{id}` | 루틴 수정 |
+| DELETE | `/api/routines/{id}` | 루틴 삭제 |
+
+### Goals
+
+| Method | Path | 설명 |
+| --- | --- | --- |
+| GET | `/api/goals` | 목표 목록 |
+| POST | `/api/goals` | 목표 생성 |
+| PUT | `/api/goals/{id}` | 목표 수정 |
+| DELETE | `/api/goals/{id}` | 목표 삭제 |
+
+### Focus Mode
+
+| Method | Path | 설명 |
+| --- | --- | --- |
+| GET | `/api/focus-sessions` | Focus 세션 목록 |
+| POST | `/api/focus-sessions` | Focus 세션 생성 |
+| PUT | `/api/focus-sessions/{id}` | Focus 세션 수정 |
+| PATCH | `/api/focus-sessions/{id}/complete` | Focus 세션 완료 |
+| DELETE | `/api/focus-sessions/{id}` | Focus 세션 삭제 |
+
+### Daily Review
+
+| Method | Path | 설명 |
+| --- | --- | --- |
+| GET | `/api/daily-reviews` | 회고 목록 |
+| GET | `/api/daily-reviews/by-date?date=2026-07-03` | 날짜별 회고 |
+| POST | `/api/daily-reviews` | 회고 생성 |
+| PUT | `/api/daily-reviews/{id}` | 회고 수정 |
+| DELETE | `/api/daily-reviews/{id}` | 회고 삭제 |
+
+### AI
+
+| Method | Path | 설명 |
+| --- | --- | --- |
+| GET | `/api/ai/suggestions` | AI 추천 placeholder |
+
+현재 AI API는 외부 모델 API를 호출하지 않습니다.
 
 ### Health
 
-| Method | Path | Description |
+| Method | Path | 설명 |
 | --- | --- | --- |
-| GET | `/actuator/health` | Application health for Docker/Kubernetes probes |
+| GET | `/actuator/health` | Kubernetes liveness/readiness probe용 health check |
 
-## Kubernetes Readiness
+## Kubernetes 배포 예정 사항
 
-No Kubernetes YAML is included yet. The application is structured for a later on-prem Kubernetes deployment:
+현재 Kubernetes YAML은 포함하지 않습니다. 대신 다음 조건을 고려해 구성했습니다.
 
-- Spring Boot backend is stateless.
-- DB credentials and JWT secret are environment variables.
-- `application.yml` does not contain hard-coded secrets.
-- Docker image can be built from `backend/Dockerfile`.
-- `/actuator/health` is available for readiness/liveness probes.
-- Config can be supplied later through Kubernetes `ConfigMap` and `Secret`.
-- AWS SDK, AWS auth, cloud-specific scripts, and cloud service dependencies are intentionally excluded.
+- Spring Boot API는 stateless 구조
+- DB/JWT/CORS 설정은 환경변수 기반
+- 민감정보를 `application.yml`에 하드코딩하지 않음
+- `backend/Dockerfile`로 이미지 빌드 가능
+- `/actuator/health` 제공
+- 추후 ConfigMap, Secret, Deployment, Service, Ingress로 이전 가능
+- AWS SDK, AWS 인증, 클라우드 전용 코드는 포함하지 않음

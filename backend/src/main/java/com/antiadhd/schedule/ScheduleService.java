@@ -1,14 +1,19 @@
 package com.antiadhd.schedule;
 
+import com.antiadhd.category.CategoryService;
 import com.antiadhd.schedule.dto.CompleteRequest;
 import com.antiadhd.schedule.dto.ScheduleRequest;
 import com.antiadhd.schedule.dto.ScheduleResponse;
+import com.antiadhd.tag.Tag;
+import com.antiadhd.tag.TagRepository;
 import com.antiadhd.user.AppUser;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,9 +22,13 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class ScheduleService {
     private final ScheduleRepository scheduleRepository;
+    private final CategoryService categoryService;
+    private final TagRepository tagRepository;
 
-    public ScheduleService(ScheduleRepository scheduleRepository) {
+    public ScheduleService(ScheduleRepository scheduleRepository, CategoryService categoryService, TagRepository tagRepository) {
         this.scheduleRepository = scheduleRepository;
+        this.categoryService = categoryService;
+        this.tagRepository = tagRepository;
     }
 
     @Transactional
@@ -95,6 +104,19 @@ public class ScheduleService {
         schedule.setEndAt(request.endAt());
         schedule.setColor(request.color());
         schedule.setRepeatType(request.repeatType() == null ? RepeatType.NONE : request.repeatType());
+        schedule.setCategory(request.categoryId() == null ? null : categoryService.findOwned(schedule.getUser(), request.categoryId()));
+        schedule.setTags(resolveTags(schedule.getUser(), request.tagIds()));
+    }
+
+    private Set<Tag> resolveTags(AppUser user, Set<Long> tagIds) {
+        if (tagIds == null || tagIds.isEmpty()) {
+            return new LinkedHashSet<>();
+        }
+        List<Tag> tags = tagRepository.findByUserAndIdIn(user, tagIds);
+        if (tags.size() != tagIds.size()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "One or more tags are invalid.");
+        }
+        return new LinkedHashSet<>(tags);
     }
 
 }

@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
+import java.util.Set;
 
 public record ScheduleRequest(
         @NotBlank @Size(max = 120) String title,
@@ -13,7 +14,8 @@ public record ScheduleRequest(
         @NotNull LocalDateTime startAt,
         @NotNull LocalDateTime endAt,
         @NotBlank @Pattern(regexp = "^#[0-9a-fA-F]{6}$") String color,
-        RepeatType repeatType
+        RepeatType repeatType,
+        Long categoryId,
+        Set<Long> tagIds
 ) {
 }
-

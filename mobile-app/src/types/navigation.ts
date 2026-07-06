@@ -10,15 +10,25 @@ export type RootTabParamList = {
   Home: undefined;
   WeeklySchedule: undefined;
   MonthlyCalendar: undefined;
+  Productivity: undefined;
   Settings: undefined;
 };
 
 export type ScheduleStackParamList = {
   MainTabs: NavigatorScreenParams<RootTabParamList> | undefined;
   ScheduleDetail: { scheduleId: number };
-  ScheduleEdit: { scheduleId?: number } | undefined;
+  ScheduleEdit: { scheduleId?: number; selectedDate?: string } | undefined;
+  FocusMode: undefined;
+  CategoryTagManager: undefined;
+  RoutineManager: undefined;
+  GoalManager: undefined;
+  DailyReview: undefined;
 };
 
 export type ScheduleDetailProps = NativeStackScreenProps<ScheduleStackParamList, 'ScheduleDetail'>;
 export type ScheduleEditProps = NativeStackScreenProps<ScheduleStackParamList, 'ScheduleEdit'>;
-
+export type FocusModeProps = NativeStackScreenProps<ScheduleStackParamList, 'FocusMode'>;
+export type CategoryTagManagerProps = NativeStackScreenProps<ScheduleStackParamList, 'CategoryTagManager'>;
+export type RoutineManagerProps = NativeStackScreenProps<ScheduleStackParamList, 'RoutineManager'>;
+export type GoalManagerProps = NativeStackScreenProps<ScheduleStackParamList, 'GoalManager'>;
+export type DailyReviewProps = NativeStackScreenProps<ScheduleStackParamList, 'DailyReview'>;

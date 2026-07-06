@@ -1,5 +1,7 @@
 package com.antiadhd.schedule;
 
+import com.antiadhd.category.Category;
+import com.antiadhd.tag.Tag;
 import com.antiadhd.user.AppUser;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -11,10 +13,14 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -41,6 +47,10 @@ public class Schedule {
     @Column(length = 1000)
     private String description;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
+    private Category category;
+
     @Column(name = "start_at", nullable = false)
     private LocalDateTime startAt;
 
@@ -56,6 +66,14 @@ public class Schedule {
 
     @Column(nullable = false)
     private boolean completed = false;
+
+    @ManyToMany
+    @JoinTable(
+            name = "schedule_tags",
+            joinColumns = @JoinColumn(name = "schedule_id"),
+            inverseJoinColumns = @JoinColumn(name = "tag_id")
+    )
+    private Set<Tag> tags = new LinkedHashSet<>();
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
@@ -91,6 +109,14 @@ public class Schedule {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public Category getCategory() {
+        return category;
+    }
+
+    public void setCategory(Category category) {
+        this.category = category;
     }
 
     public LocalDateTime getStartAt() {
@@ -133,6 +159,14 @@ public class Schedule {
         this.completed = completed;
     }
 
+    public Set<Tag> getTags() {
+        return tags;
+    }
+
+    public void setTags(Set<Tag> tags) {
+        this.tags = tags;
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
     }
@@ -141,4 +175,3 @@ public class Schedule {
         return updatedAt;
     }
 }
-

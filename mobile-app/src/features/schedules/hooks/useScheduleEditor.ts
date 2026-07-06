@@ -14,9 +14,11 @@ type FormState = {
   repeatType: RepeatType;
 };
 
-function initialForm(): FormState {
-  const start = new Date();
-  start.setHours(start.getHours() + 1, 0, 0, 0);
+function initialForm(selectedDate?: string): FormState {
+  const start = selectedDate ? new Date(`${selectedDate}T09:00:00`) : new Date();
+  if (!selectedDate) {
+    start.setHours(start.getHours() + 1, 0, 0, 0);
+  }
   const end = new Date(start);
   end.setHours(end.getHours() + 1);
   return {
@@ -29,11 +31,16 @@ function initialForm(): FormState {
   };
 }
 
-export function useScheduleEditor(scheduleId?: number) {
-  const [form, setForm] = useState<FormState>(initialForm);
+export function useScheduleEditor(scheduleId?: number, selectedDate?: string) {
+  const [form, setForm] = useState<FormState>(() => initialForm(selectedDate));
   const [isLoading, setIsLoading] = useState(Boolean(scheduleId));
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (scheduleId || !selectedDate) return;
+    setForm(initialForm(selectedDate));
+  }, [scheduleId, selectedDate]);
 
   useEffect(() => {
     async function load() {

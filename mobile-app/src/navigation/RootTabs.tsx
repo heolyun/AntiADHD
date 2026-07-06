@@ -1,6 +1,6 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Text } from 'react-native';
+import { View } from 'react-native';
 import { colors } from '../shared/constants/theme';
 import { HomeScreen } from '../features/schedules/screens/HomeScreen';
 import { MonthlyCalendarScreen } from '../features/schedules/screens/MonthlyCalendarScreen';
@@ -8,54 +8,69 @@ import { ScheduleDetailScreen } from '../features/schedules/screens/ScheduleDeta
 import { ScheduleEditScreen } from '../features/schedules/screens/ScheduleEditScreen';
 import { SettingsScreen } from '../features/settings/screens/SettingsScreen';
 import { WeeklyScheduleScreen } from '../features/schedules/screens/WeeklyScheduleScreen';
+import { ProductivityScreen } from '../features/productivity/screens/ProductivityScreen';
+import { FocusModeScreen } from '../features/focus/screens/FocusModeScreen';
+import { CategoryTagManagerScreen } from '../features/categories/screens/CategoryTagManagerScreen';
+import { DailyReviewScreen } from '../features/reviews/screens/DailyReviewScreen';
+import { GoalManagerScreen } from '../features/goals/screens/GoalManagerScreen';
+import { RoutineManagerScreen } from '../features/routines/screens/RoutineManagerScreen';
 import type { RootTabParamList, ScheduleStackParamList } from '../types/navigation';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 const Stack = createNativeStackNavigator<ScheduleStackParamList>();
 
-function TabIcon({ label, focused }: { label: string; focused: boolean }) {
-  return <Text style={{ color: focused ? colors.primary : colors.muted, fontSize: 15, fontWeight: '900' }}>{label}</Text>;
-}
+const labels = {
+  today: '\uC624\uB298',
+  week: '\uC8FC\uAC04',
+  month: '\uC6D4\uAC04',
+  productivity: '\uC0DD\uC0B0\uC131',
+  settings: '\uC124\uC815',
+  scheduleDetail: '\uC77C\uC815 \uC0C1\uC138',
+  scheduleEdit: '\uC77C\uC815 \uD3B8\uC9D1',
+  focusMode: '\uD3EC\uCEE4\uC2A4 \uBAA8\uB4DC',
+  categoryTagManager: '\uCE74\uD14C\uACE0\uB9AC\uC640 \uD0DC\uADF8',
+  routineManager: '\uB8E8\uD2F4',
+  goalManager: '\uBAA9\uD45C',
+  dailyReview: '\uD558\uB8E8 \uD68C\uACE0'
+};
 
 function MainTabs() {
   return (
     <Tab.Navigator
+      initialRouteName="MonthlyCalendar"
       screenOptions={{
         headerShown: false,
+        tabBarIcon: () => <View />,
+        tabBarIconStyle: {
+          display: 'none',
+          width: 0,
+          height: 0,
+          margin: 0
+        },
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.muted,
         tabBarStyle: {
           borderTopColor: colors.border,
-          height: 64,
+          height: 58,
+          paddingTop: 6,
           paddingBottom: 8,
-          paddingTop: 8
+          backgroundColor: colors.surface
+        },
+        tabBarItemStyle: {
+          justifyContent: 'center'
         },
         tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '800'
+          fontSize: 13,
+          fontWeight: '900',
+          lineHeight: 16
         }
       }}
     >
-      <Tab.Screen
-        name="Home"
-        component={HomeScreen}
-        options={{ title: '오늘', tabBarIcon: ({ focused }) => <TabIcon label="오늘" focused={focused} /> }}
-      />
-      <Tab.Screen
-        name="WeeklySchedule"
-        component={WeeklyScheduleScreen}
-        options={{ title: '주간', tabBarIcon: ({ focused }) => <TabIcon label="주" focused={focused} /> }}
-      />
-      <Tab.Screen
-        name="MonthlyCalendar"
-        component={MonthlyCalendarScreen}
-        options={{ title: '월간', tabBarIcon: ({ focused }) => <TabIcon label="월" focused={focused} /> }}
-      />
-      <Tab.Screen
-        name="Settings"
-        component={SettingsScreen}
-        options={{ title: '설정', tabBarIcon: ({ focused }) => <TabIcon label="설정" focused={focused} /> }}
-      />
+      <Tab.Screen name="MonthlyCalendar" component={MonthlyCalendarScreen} options={{ title: labels.month }} />
+      <Tab.Screen name="Home" component={HomeScreen} options={{ title: labels.today }} />
+      <Tab.Screen name="WeeklySchedule" component={WeeklyScheduleScreen} options={{ title: labels.week }} />
+      <Tab.Screen name="Productivity" component={ProductivityScreen} options={{ title: labels.productivity }} />
+      <Tab.Screen name="Settings" component={SettingsScreen} options={{ title: labels.settings }} />
     </Tab.Navigator>
   );
 }
@@ -64,8 +79,13 @@ export function RootTabs() {
   return (
     <Stack.Navigator>
       <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
-      <Stack.Screen name="ScheduleDetail" component={ScheduleDetailScreen} options={{ title: '일정 상세' }} />
-      <Stack.Screen name="ScheduleEdit" component={ScheduleEditScreen} options={{ title: '일정 편집', presentation: 'modal' }} />
+      <Stack.Screen name="ScheduleDetail" component={ScheduleDetailScreen} options={{ title: labels.scheduleDetail }} />
+      <Stack.Screen name="ScheduleEdit" component={ScheduleEditScreen} options={{ title: labels.scheduleEdit, presentation: 'modal' }} />
+      <Stack.Screen name="FocusMode" component={FocusModeScreen} options={{ title: labels.focusMode }} />
+      <Stack.Screen name="CategoryTagManager" component={CategoryTagManagerScreen} options={{ title: labels.categoryTagManager }} />
+      <Stack.Screen name="RoutineManager" component={RoutineManagerScreen} options={{ title: labels.routineManager }} />
+      <Stack.Screen name="GoalManager" component={GoalManagerScreen} options={{ title: labels.goalManager }} />
+      <Stack.Screen name="DailyReview" component={DailyReviewScreen} options={{ title: labels.dailyReview }} />
     </Stack.Navigator>
   );
 }

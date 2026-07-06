@@ -17,8 +17,11 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+    width: '100%',
+    maxWidth: 980,
+    alignSelf: 'center',
     paddingHorizontal: 20,
-    paddingTop: 16
+    paddingTop: 18,
+    paddingBottom: 8
   }
 });
-
