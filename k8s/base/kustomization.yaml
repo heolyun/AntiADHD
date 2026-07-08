@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: antiadhd
+resources:
+  - namespace.yaml
+  - backend-configmap.yaml
+  - backend-deployment.yaml
+  - backend-service.yaml
+  - backend-ingress.yaml
+images:
+  - name: ghcr.io/YOUR_GITHUB_ID/antiadhd-backend
+    newName: ghcr.io/YOUR_GITHUB_ID/antiadhd-backend
+    newTag: 0.1.0

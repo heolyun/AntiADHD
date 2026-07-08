@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: antiadhd
+  labels:
+    app.kubernetes.io/name: antiadhd
+    app.kubernetes.io/part-of: antiadhd

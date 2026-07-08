@@ -63,6 +63,11 @@ AntiADHD/
       tag/
       user/
 
+  k8s/
+    base/
+    local/
+    prod/
+
   docker-compose.yml
   .env.example
 ```
@@ -271,14 +276,155 @@ Authorization: Bearer <token>
 | --- | --- | --- |
 | GET | `/actuator/health` | Kubernetes liveness/readiness probe용 health check |
 
-## Kubernetes 배포 예정 사항
+## Kubernetes 배포
 
-현재 Kubernetes YAML은 포함하지 않습니다. 대신 다음 조건을 고려해 구성했습니다.
+온프레미스 k3s 환경을 기준으로 Kubernetes 배포 구조를 제공합니다. Ingress Controller는 k3s 기본 Traefik을 사용하며, Ingress는 표준 Kubernetes `Ingress` 리소스로 작성되어 있습니다.
 
-- Spring Boot API는 stateless 구조
-- DB/JWT/CORS 설정은 환경변수 기반
-- 민감정보를 `application.yml`에 하드코딩하지 않음
-- `backend/Dockerfile`로 이미지 빌드 가능
-- `/actuator/health` 제공
-- 추후 ConfigMap, Secret, Deployment, Service, Ingress로 이전 가능
-- AWS SDK, AWS 인증, 클라우드 전용 코드는 포함하지 않음
+```text
+k8s/
+  base/
+    namespace.yaml
+    backend-deployment.yaml
+    backend-service.yaml
+    backend-ingress.yaml
+    backend-configmap.yaml
+    backend-secret.example.yaml
+    kustomization.yaml
+  local/
+    kustomization.yaml
+    postgres-deployment.yaml
+    postgres-service.yaml
+    postgres-secret.example.yaml
+  prod/
+    kustomization.yaml
+```
+
+### 이미지 빌드 및 Push
+
+GitHub Container Registry를 기준으로 합니다.
+
+```bash
+docker build -t ghcr.io/YOUR_GITHUB_ID/antiadhd-backend:0.1.0 ./backend
+docker push ghcr.io/YOUR_GITHUB_ID/antiadhd-backend:0.1.0
+```
+
+이미지 저장소나 태그를 바꾸려면 `k8s/local/kustomization.yaml` 또는 `k8s/prod/kustomization.yaml`의 `images` 값을 수정합니다.
+
+```yaml
+images:
+  - name: ghcr.io/YOUR_GITHUB_ID/antiadhd-backend
+    newName: ghcr.io/YOUR_GITHUB_ID/antiadhd-backend
+    newTag: 0.1.0
+```
+
+### hosts 파일 설정
+
+개발용 내부 도메인은 `api.antiadhd.local`입니다. k3s 노드 IP를 확인한 뒤 hosts 파일에 등록합니다.
+
+Windows:
+
+```text
+C:\Windows\System32\drivers\etc\hosts
+```
+
+예시:
+
+```text
+192.168.0.20 api.antiadhd.local
+```
+
+macOS/Linux:
+
+```bash
+sudo vi /etc/hosts
+```
+
+### Secret 생성
+
+Secret manifest는 실제 값을 포함하지 않고 `.example.yaml`만 제공합니다. 실제 Secret은 `kubectl create secret generic` 명령으로 생성합니다.
+
+먼저 namespace를 생성합니다.
+
+```bash
+kubectl apply -f k8s/base/namespace.yaml
+```
+
+local 환경에서는 PostgreSQL도 Kubernetes 안에 함께 배포하므로 PostgreSQL Secret과 Backend Secret을 모두 생성합니다.
+
+```bash
+kubectl create secret generic antiadhd-postgres-secret \
+  -n antiadhd \
+  --from-literal=POSTGRES_USER=antiadhd \
+  --from-literal=POSTGRES_PASSWORD=change-me
+
+kubectl create secret generic antiadhd-backend-secret \
+  -n antiadhd \
+  --from-literal=SPRING_DATASOURCE_USERNAME=antiadhd \
+  --from-literal=SPRING_DATASOURCE_PASSWORD=change-me \
+  --from-literal=JWT_SECRET=replace-with-at-least-32-characters-secret
+```
+
+prod 환경에서는 PostgreSQL을 Kubernetes에 띄우지 않고 외부 PostgreSQL을 사용합니다.
+
+```bash
+kubectl create secret generic antiadhd-backend-secret \
+  -n antiadhd \
+  --from-literal=SPRING_DATASOURCE_USERNAME=prod-db-user \
+  --from-literal=SPRING_DATASOURCE_PASSWORD=prod-db-password \
+  --from-literal=JWT_SECRET=replace-with-prod-random-secret
+```
+
+### local 배포
+
+local overlay는 Backend와 PostgreSQL을 함께 배포합니다.
+
+```bash
+kubectl apply -k k8s/local
+```
+
+확인:
+
+```bash
+kubectl get pods -n antiadhd
+kubectl get svc -n antiadhd
+kubectl get ingress -n antiadhd
+```
+
+Health check:
+
+```bash
+curl http://api.antiadhd.local/actuator/health
+```
+
+### prod 배포
+
+prod overlay는 Backend만 배포하고 외부 PostgreSQL을 사용합니다. 배포 전에 `k8s/prod/kustomization.yaml`에서 외부 DB 주소, CORS 도메인, 이미지 태그를 운영 환경 값으로 변경합니다.
+
+```yaml
+SPRING_DATASOURCE_URL: "jdbc:postgresql://external-postgres.example.local:5432/antiadhd"
+CORS_ALLOWED_ORIGINS: "https://api.antiadhd.local"
+```
+
+배포:
+
+```bash
+kubectl apply -k k8s/prod
+```
+
+확인:
+
+```bash
+kubectl get pods -n antiadhd
+kubectl get svc -n antiadhd
+kubectl get ingress -n antiadhd
+```
+
+### 배포 구조 참고
+
+- Spring Boot API는 stateless 구조입니다.
+- DB/JWT/CORS 설정은 ConfigMap과 Secret 기반입니다.
+- 민감정보는 Git에 커밋하지 않습니다.
+- `backend/Dockerfile`은 멀티 스테이지 빌드와 layered jar 실행을 사용합니다.
+- `/actuator/health` 기반 `livenessProbe`, `readinessProbe`를 설정했습니다.
+- local은 Kubernetes 내부 PostgreSQL, prod는 외부 PostgreSQL 사용을 기준으로 분리했습니다.
+- AWS SDK, AWS 인증, 클라우드 전용 코드는 포함하지 않습니다.

@@ -1,0 +1,30 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: antiadhd
+resources:
+  - ../base
+images:
+  - name: ghcr.io/YOUR_GITHUB_ID/antiadhd-backend
+    newName: ghcr.io/YOUR_GITHUB_ID/antiadhd-backend
+    newTag: 0.1.0
+patches:
+  - target:
+      kind: ConfigMap
+      name: antiadhd-backend-config
+    patch: |-
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: antiadhd-backend-config
+      data:
+        SPRING_PROFILES_ACTIVE: "prod"
+        SPRING_DATASOURCE_URL: "jdbc:postgresql://external-postgres.example.local:5432/antiadhd"
+        JPA_DDL_AUTO: "validate"
+        CORS_ALLOWED_ORIGINS: "https://api.antiadhd.local"
+  - target:
+      kind: Ingress
+      name: antiadhd-backend
+    patch: |-
+      - op: replace
+        path: /spec/rules/0/host
+        value: api.antiadhd.local
