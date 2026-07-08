@@ -1,13 +1,8 @@
-export type Tag = {
-  id: number;
-  name: string;
-  color: string;
-  createdAt: string;
-  updatedAt: string;
-};
+import type { ColorLabel, TimestampedEntity } from '../../../shared/types/api';
+
+export type Tag = ColorLabel & TimestampedEntity;
 
 export type TagRequest = {
   name: string;
   color: string;
 };
-

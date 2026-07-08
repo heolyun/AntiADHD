@@ -1,6 +1,8 @@
-export type RepeatType = 'NONE' | 'DAILY' | 'WEEKLY' | 'MONTHLY';
+import type { ColorLabel, RepeatType, TimestampedEntity } from '../../../shared/types/api';
 
-export type Schedule = {
+export type { RepeatType } from '../../../shared/types/api';
+
+export type Schedule = TimestampedEntity & {
   id: number;
   title: string;
   description?: string | null;
@@ -8,20 +10,10 @@ export type Schedule = {
   endAt: string;
   color: string;
   repeatType: RepeatType;
-  category?: CategorySummary | null;
-  tags: TagSummary[];
+  category?: ColorLabel | null;
+  tags: ColorLabel[];
   completed: boolean;
-  createdAt: string;
-  updatedAt: string;
 };
-
-export type CategorySummary = {
-  id: number;
-  name: string;
-  color: string;
-};
-
-export type TagSummary = CategorySummary;
 
 export type ScheduleRequest = {
   title: string;

@@ -12,5 +12,6 @@ public interface DailyReviewRepository extends JpaRepository<DailyReview, Long> 
     Optional<DailyReview> findByIdAndUser(Long id, AppUser user);
 
     Optional<DailyReview> findByUserAndReviewDate(AppUser user, LocalDate reviewDate);
-}
 
+    boolean existsByUserAndReviewDate(AppUser user, LocalDate reviewDate);
+}

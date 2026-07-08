@@ -7,6 +7,7 @@ import { Button } from '../../../shared/components/Button';
 import { Header } from '../../../shared/components/Header';
 import { Screen } from '../../../shared/components/Screen';
 import { colors } from '../../../shared/constants/theme';
+import { useAsyncAction } from '../../../shared/hooks/useAsyncAction';
 import { toDateKey } from '../../../shared/utils/date';
 import { getErrorMessage } from '../../../shared/utils/error';
 
@@ -19,6 +20,7 @@ export function DailyReviewScreen() {
   const [improvement, setImprovement] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const mutation = useAsyncAction();
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
@@ -37,25 +39,32 @@ export function DailyReviewScreen() {
   }, [refresh]));
 
   const handleCreate = async () => {
-    await createDailyReview({
-      reviewDate,
-      mood: mood.trim(),
-      summary: summary.trim(),
-      accomplishment: accomplishment.trim(),
-      improvement: improvement.trim()
+    const result = await mutation.run(async () => {
+      await createDailyReview({
+        reviewDate,
+        mood: mood.trim(),
+        summary: summary.trim(),
+        accomplishment: accomplishment.trim(),
+        improvement: improvement.trim()
+      });
+      await refresh();
     });
-    setMood('');
-    setSummary('');
-    setAccomplishment('');
-    setImprovement('');
-    refresh();
+    if (result !== null) {
+      setMood('');
+      setSummary('');
+      setAccomplishment('');
+      setImprovement('');
+    }
   };
+
+  const visibleError = error || mutation.error;
+  const busy = isLoading || mutation.isLoading;
 
   return (
     <Screen>
       <Header eyebrow="하루 회고" title="Daily Review" />
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      {isLoading ? <ActivityIndicator color={colors.primary} style={styles.loading} /> : null}
+      {visibleError ? <Text style={styles.error}>{visibleError}</Text> : null}
+      {busy ? <ActivityIndicator color={colors.primary} style={styles.loading} /> : null}
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.card}>
           <Text style={styles.cardTitle}>오늘 회고 작성</Text>
@@ -64,14 +73,14 @@ export function DailyReviewScreen() {
           <TextInput value={summary} onChangeText={setSummary} placeholder="오늘 요약" style={[styles.input, styles.multiInput]} multiline />
           <TextInput value={accomplishment} onChangeText={setAccomplishment} placeholder="잘한 점" style={[styles.input, styles.multiInput]} multiline />
           <TextInput value={improvement} onChangeText={setImprovement} placeholder="개선할 점" style={[styles.input, styles.multiInput]} multiline />
-          <Button title="회고 저장" onPress={handleCreate} />
+          <Button title="회고 저장" loading={mutation.isLoading} onPress={handleCreate} />
         </View>
 
         {reviews.map((review) => (
           <View key={review.id} style={styles.reviewCard}>
             <View style={styles.reviewHeader}>
               <Text style={styles.rowTitle}>{review.reviewDate}</Text>
-              <Button title="삭제" variant="danger" onPress={async () => { await deleteDailyReview(review.id); refresh(); }} />
+              <Button title="삭제" variant="danger" onPress={() => mutation.run(async () => { await deleteDailyReview(review.id); await refresh(); })} />
             </View>
             {review.mood ? <Text style={styles.rowMeta}>기분: {review.mood}</Text> : null}
             {review.summary ? <Text style={styles.body}>{review.summary}</Text> : null}

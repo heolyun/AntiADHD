@@ -11,13 +11,18 @@ import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import java.time.Instant;
 import java.time.LocalDate;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 @Entity
-@Table(name = "daily_reviews", indexes = @Index(name = "idx_daily_reviews_user_date", columnList = "user_id,review_date"))
+@Table(
+        name = "daily_reviews",
+        indexes = @Index(name = "idx_daily_reviews_user_date", columnList = "user_id,review_date"),
+        uniqueConstraints = @UniqueConstraint(name = "uk_daily_reviews_user_date", columnNames = {"user_id", "review_date"})
+)
 public class DailyReview {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -66,4 +71,3 @@ public class DailyReview {
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 }
-

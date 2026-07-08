@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { createSchedule, getSchedule, updateSchedule } from '../api/scheduleApi';
 import { scheduleColors } from '../../../shared/constants/theme';
-import type { RepeatType, ScheduleRequest } from '../dto/schedule.dto';
+import type { RepeatType } from '../../../shared/types/api';
+import type { ScheduleRequest } from '../dto/schedule.dto';
 import { toLocalDateTimeValue } from '../../../shared/utils/date';
 import { getErrorMessage } from '../../../shared/utils/error';
 
@@ -12,6 +13,8 @@ type FormState = {
   endAt: string;
   color: string;
   repeatType: RepeatType;
+  categoryId: number | null;
+  tagIds: number[];
 };
 
 function initialForm(selectedDate?: string): FormState {
@@ -27,7 +30,9 @@ function initialForm(selectedDate?: string): FormState {
     startAt: toLocalDateTimeValue(start),
     endAt: toLocalDateTimeValue(end),
     color: scheduleColors[0],
-    repeatType: 'NONE'
+    repeatType: 'NONE',
+    categoryId: null,
+    tagIds: []
   };
 }
 
@@ -54,7 +59,9 @@ export function useScheduleEditor(scheduleId?: number, selectedDate?: string) {
           startAt: schedule.startAt.slice(0, 19),
           endAt: schedule.endAt.slice(0, 19),
           color: schedule.color,
-          repeatType: schedule.repeatType
+          repeatType: schedule.repeatType,
+          categoryId: schedule.category?.id ?? null,
+          tagIds: schedule.tags.map((tag) => tag.id)
         });
       } catch (err) {
         setError(getErrorMessage(err));
@@ -76,7 +83,9 @@ export function useScheduleEditor(scheduleId?: number, selectedDate?: string) {
         startAt: form.startAt,
         endAt: form.endAt,
         color: form.color,
-        repeatType: form.repeatType
+        repeatType: form.repeatType,
+        categoryId: form.categoryId,
+        tagIds: form.tagIds
       };
 
       if (scheduleId) {

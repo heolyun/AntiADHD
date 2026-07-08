@@ -1,13 +1,12 @@
 package com.antiadhd.category;
 
+import com.antiadhd.common.exception.ResourceNotFoundException;
 import com.antiadhd.category.dto.CategoryRequest;
 import com.antiadhd.category.dto.CategoryResponse;
 import com.antiadhd.user.AppUser;
 import java.util.List;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class CategoryService {
@@ -44,7 +43,7 @@ public class CategoryService {
 
     public Category findOwned(AppUser user, Long id) {
         return categoryRepository.findByIdAndUser(id, user)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found."));
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found."));
     }
 
     private void apply(Category category, CategoryRequest request) {
@@ -52,4 +51,3 @@ public class CategoryService {
         category.setColor(request.color());
     }
 }
-

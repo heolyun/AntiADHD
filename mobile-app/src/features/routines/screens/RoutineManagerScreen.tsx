@@ -3,11 +3,12 @@ import { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { createRoutine, deleteRoutine, getRoutines, updateRoutine } from '../api/routineApi';
 import type { Routine } from '../dto/routine.dto';
-import type { RepeatType } from '../../schedules/dto/schedule.dto';
+import type { RepeatType } from '../../../shared/types/api';
 import { Button } from '../../../shared/components/Button';
 import { Header } from '../../../shared/components/Header';
 import { Screen } from '../../../shared/components/Screen';
-import { colors } from '../../../shared/constants/theme';
+import { colors, repeatLabels } from '../../../shared/constants/theme';
+import { useAsyncAction } from '../../../shared/hooks/useAsyncAction';
 import { getErrorMessage } from '../../../shared/utils/error';
 
 const repeatTypes: RepeatType[] = ['NONE', 'DAILY', 'WEEKLY', 'MONTHLY'];
@@ -19,6 +20,7 @@ export function RoutineManagerScreen() {
   const [repeatType, setRepeatType] = useState<RepeatType>('DAILY');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const mutation = useAsyncAction();
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
@@ -38,28 +40,37 @@ export function RoutineManagerScreen() {
 
   const handleCreate = async () => {
     if (!title.trim()) return;
-    await createRoutine({ title: title.trim(), description: description.trim(), repeatType, active: true });
-    setTitle('');
-    setDescription('');
-    refresh();
+    const result = await mutation.run(async () => {
+      await createRoutine({ title: title.trim(), description: description.trim(), repeatType, active: true });
+      await refresh();
+    });
+    if (result !== null) {
+      setTitle('');
+      setDescription('');
+    }
   };
 
   const toggleActive = async (routine: Routine) => {
-    await updateRoutine(routine.id, {
-      title: routine.title,
-      description: routine.description ?? '',
-      repeatType: routine.repeatType,
-      targetTime: routine.targetTime,
-      active: !routine.active
+    await mutation.run(async () => {
+      await updateRoutine(routine.id, {
+        title: routine.title,
+        description: routine.description ?? '',
+        repeatType: routine.repeatType,
+        targetTime: routine.targetTime,
+        active: !routine.active
+      });
+      await refresh();
     });
-    refresh();
   };
+
+  const visibleError = error || mutation.error;
+  const busy = isLoading || mutation.isLoading;
 
   return (
     <Screen>
       <Header eyebrow="습관 관리" title="루틴" />
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      {isLoading ? <ActivityIndicator color={colors.primary} style={styles.loading} /> : null}
+      {visibleError ? <Text style={styles.error}>{visibleError}</Text> : null}
+      {busy ? <ActivityIndicator color={colors.primary} style={styles.loading} /> : null}
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.card}>
           <Text style={styles.cardTitle}>루틴 추가</Text>
@@ -68,21 +79,21 @@ export function RoutineManagerScreen() {
           <View style={styles.segment}>
             {repeatTypes.map((type) => (
               <Pressable key={type} onPress={() => setRepeatType(type)} style={[styles.segmentItem, repeatType === type && styles.segmentActive]}>
-                <Text style={[styles.segmentText, repeatType === type && styles.segmentTextActive]}>{type}</Text>
+                <Text style={[styles.segmentText, repeatType === type && styles.segmentTextActive]}>{repeatLabels[type]}</Text>
               </Pressable>
             ))}
           </View>
-          <Button title="루틴 저장" onPress={handleCreate} />
+          <Button title="루틴 저장" loading={mutation.isLoading} onPress={handleCreate} />
         </View>
 
         {routines.map((routine) => (
           <View key={routine.id} style={styles.row}>
             <View style={styles.rowText}>
               <Text style={styles.rowTitle}>{routine.title}</Text>
-              <Text style={styles.rowMeta}>{routine.repeatType} · {routine.active ? '활성' : '비활성'}</Text>
+              <Text style={styles.rowMeta}>{repeatLabels[routine.repeatType]} · {routine.active ? '활성' : '비활성'}</Text>
             </View>
             <Button title={routine.active ? '끄기' : '켜기'} variant="secondary" onPress={() => toggleActive(routine)} />
-            <Button title="삭제" variant="danger" onPress={async () => { await deleteRoutine(routine.id); refresh(); }} />
+            <Button title="삭제" variant="danger" onPress={() => mutation.run(async () => { await deleteRoutine(routine.id); await refresh(); })} />
           </View>
         ))}
       </ScrollView>

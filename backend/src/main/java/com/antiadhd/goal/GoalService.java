@@ -1,13 +1,12 @@
 package com.antiadhd.goal;
 
+import com.antiadhd.common.exception.ResourceNotFoundException;
 import com.antiadhd.goal.dto.GoalRequest;
 import com.antiadhd.goal.dto.GoalResponse;
 import com.antiadhd.user.AppUser;
 import java.util.List;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class GoalService {
@@ -44,7 +43,7 @@ public class GoalService {
 
     private Goal findOwned(AppUser user, Long id) {
         return goalRepository.findByIdAndUser(id, user)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Goal not found."));
+                .orElseThrow(() -> new ResourceNotFoundException("Goal not found."));
     }
 
     private void apply(Goal goal, GoalRequest request) {
@@ -55,4 +54,3 @@ public class GoalService {
         goal.setStatus(request.status() == null ? GoalStatus.TODO : request.status());
     }
 }
-

@@ -7,6 +7,7 @@ import { Button } from '../../../shared/components/Button';
 import { Header } from '../../../shared/components/Header';
 import { Screen } from '../../../shared/components/Screen';
 import { colors } from '../../../shared/constants/theme';
+import { useAsyncAction } from '../../../shared/hooks/useAsyncAction';
 import { getErrorMessage } from '../../../shared/utils/error';
 
 export function GoalManagerScreen() {
@@ -16,6 +17,7 @@ export function GoalManagerScreen() {
   const [progress, setProgress] = useState('0');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const mutation = useAsyncAction();
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
@@ -35,41 +37,50 @@ export function GoalManagerScreen() {
 
   const handleCreate = async () => {
     if (!title.trim()) return;
-    await createGoal({
-      title: title.trim(),
-      description: description.trim(),
-      progress: Math.min(100, Math.max(0, Number(progress) || 0)),
-      status: 'IN_PROGRESS'
+    const result = await mutation.run(async () => {
+      await createGoal({
+        title: title.trim(),
+        description: description.trim(),
+        progress: Math.min(100, Math.max(0, Number(progress) || 0)),
+        status: 'IN_PROGRESS'
+      });
+      await refresh();
     });
-    setTitle('');
-    setDescription('');
-    setProgress('0');
-    refresh();
+    if (result !== null) {
+      setTitle('');
+      setDescription('');
+      setProgress('0');
+    }
   };
 
   const completeGoal = async (goal: Goal) => {
-    await updateGoal(goal.id, {
-      title: goal.title,
-      description: goal.description ?? '',
-      targetDate: goal.targetDate,
-      progress: 100,
-      status: 'DONE'
+    await mutation.run(async () => {
+      await updateGoal(goal.id, {
+        title: goal.title,
+        description: goal.description ?? '',
+        targetDate: goal.targetDate,
+        progress: 100,
+        status: 'DONE'
+      });
+      await refresh();
     });
-    refresh();
   };
+
+  const visibleError = error || mutation.error;
+  const busy = isLoading || mutation.isLoading;
 
   return (
     <Screen>
       <Header eyebrow="방향 관리" title="목표" />
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      {isLoading ? <ActivityIndicator color={colors.primary} style={styles.loading} /> : null}
+      {visibleError ? <Text style={styles.error}>{visibleError}</Text> : null}
+      {busy ? <ActivityIndicator color={colors.primary} style={styles.loading} /> : null}
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.card}>
           <Text style={styles.cardTitle}>목표 추가</Text>
           <TextInput value={title} onChangeText={setTitle} placeholder="예: 포트폴리오 MVP 완성" style={styles.input} />
           <TextInput value={description} onChangeText={setDescription} placeholder="설명" style={[styles.input, styles.multiInput]} multiline />
           <TextInput value={progress} onChangeText={setProgress} placeholder="진행률 0-100" keyboardType="numeric" style={styles.input} />
-          <Button title="목표 저장" onPress={handleCreate} />
+          <Button title="목표 저장" loading={mutation.isLoading} onPress={handleCreate} />
         </View>
 
         {goals.map((goal) => (
@@ -82,7 +93,7 @@ export function GoalManagerScreen() {
               </View>
             </View>
             {goal.status !== 'DONE' ? <Button title="완료" variant="secondary" onPress={() => completeGoal(goal)} /> : null}
-            <Button title="삭제" variant="danger" onPress={async () => { await deleteGoal(goal.id); refresh(); }} />
+            <Button title="삭제" variant="danger" onPress={() => mutation.run(async () => { await deleteGoal(goal.id); await refresh(); })} />
           </View>
         ))}
       </ScrollView>

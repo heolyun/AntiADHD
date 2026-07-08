@@ -5,13 +5,14 @@ export function useAsyncAction() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function run(action: () => Promise<void>) {
+  async function run<T>(action: () => Promise<T>): Promise<T | null> {
     setIsLoading(true);
     setError(null);
     try {
-      await action();
+      return await action();
     } catch (err) {
       setError(getErrorMessage(err));
+      return null;
     } finally {
       setIsLoading(false);
     }
@@ -19,4 +20,3 @@ export function useAsyncAction() {
 
   return { isLoading, error, setError, run };
 }
-

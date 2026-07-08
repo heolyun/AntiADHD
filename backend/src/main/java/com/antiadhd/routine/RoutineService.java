@@ -1,14 +1,13 @@
 package com.antiadhd.routine;
 
+import com.antiadhd.common.exception.ResourceNotFoundException;
 import com.antiadhd.routine.dto.RoutineRequest;
 import com.antiadhd.routine.dto.RoutineResponse;
 import com.antiadhd.schedule.RepeatType;
 import com.antiadhd.user.AppUser;
 import java.util.List;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class RoutineService {
@@ -45,7 +44,7 @@ public class RoutineService {
 
     private Routine findOwned(AppUser user, Long id) {
         return routineRepository.findByIdAndUser(id, user)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Routine not found."));
+                .orElseThrow(() -> new ResourceNotFoundException("Routine not found."));
     }
 
     private void apply(Routine routine, RoutineRequest request) {
@@ -56,4 +55,3 @@ public class RoutineService {
         routine.setActive(request.active());
     }
 }
-

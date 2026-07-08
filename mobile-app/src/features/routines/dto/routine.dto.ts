@@ -1,14 +1,12 @@
-import type { RepeatType } from '../../schedules/dto/schedule.dto';
+import type { RepeatType, TimestampedEntity } from '../../../shared/types/api';
 
-export type Routine = {
+export type Routine = TimestampedEntity & {
   id: number;
   title: string;
   description?: string | null;
   repeatType: RepeatType;
   targetTime?: string | null;
   active: boolean;
-  createdAt: string;
-  updatedAt: string;
 };
 
 export type RoutineRequest = {
@@ -18,4 +16,3 @@ export type RoutineRequest = {
   targetTime?: string | null;
   active: boolean;
 };
-

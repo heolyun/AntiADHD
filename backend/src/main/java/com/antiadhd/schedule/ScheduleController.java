@@ -5,6 +5,7 @@ import com.antiadhd.schedule.dto.ScheduleRequest;
 import com.antiadhd.schedule.dto.ScheduleResponse;
 import com.antiadhd.user.AppUser;
 import jakarta.validation.Valid;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -27,9 +28,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/schedules")
 public class ScheduleController {
     private final ScheduleService scheduleService;
+    private final Clock clock;
 
-    public ScheduleController(ScheduleService scheduleService) {
+    public ScheduleController(ScheduleService scheduleService, Clock clock) {
         this.scheduleService = scheduleService;
+        this.clock = clock;
     }
 
     @PostMapping
@@ -47,8 +50,9 @@ public class ScheduleController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to
     ) {
-        LocalDateTime rangeFrom = from == null ? LocalDate.now().atStartOfDay() : from;
-        LocalDateTime rangeTo = to == null ? LocalDate.now().plusDays(31).atStartOfDay() : to;
+        LocalDate today = today();
+        LocalDateTime rangeFrom = from == null ? today.atStartOfDay() : from;
+        LocalDateTime rangeTo = to == null ? today.plusDays(31).atStartOfDay() : to;
         return scheduleService.findBetween(user, rangeFrom, rangeTo);
     }
 
@@ -86,7 +90,7 @@ public class ScheduleController {
             @AuthenticationPrincipal AppUser user,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
     ) {
-        return scheduleService.today(user, date == null ? LocalDate.now() : date);
+        return scheduleService.today(user, date == null ? today() : date);
     }
 
     @GetMapping("/week")
@@ -94,7 +98,7 @@ public class ScheduleController {
             @AuthenticationPrincipal AppUser user,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
     ) {
-        return scheduleService.week(user, date == null ? LocalDate.now() : date);
+        return scheduleService.week(user, date == null ? today() : date);
     }
 
     @GetMapping("/month")
@@ -103,8 +107,11 @@ public class ScheduleController {
             @RequestParam(required = false) Integer year,
             @RequestParam(required = false) Integer month
     ) {
-        LocalDate now = LocalDate.now();
+        LocalDate now = today();
         return scheduleService.month(user, year == null ? now.getYear() : year, month == null ? now.getMonthValue() : month);
     }
-}
 
+    private LocalDate today() {
+        return LocalDate.now(clock);
+    }
+}

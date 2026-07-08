@@ -1,14 +1,14 @@
 package com.antiadhd.review;
 
+import com.antiadhd.common.exception.ConflictException;
+import com.antiadhd.common.exception.ResourceNotFoundException;
 import com.antiadhd.review.dto.DailyReviewRequest;
 import com.antiadhd.review.dto.DailyReviewResponse;
 import com.antiadhd.user.AppUser;
 import java.time.LocalDate;
 import java.util.List;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class DailyReviewService {
@@ -26,11 +26,15 @@ public class DailyReviewService {
     @Transactional(readOnly = true)
     public DailyReviewResponse getByDate(AppUser user, LocalDate date) {
         return dailyReviewRepository.findByUserAndReviewDate(user, date).map(DailyReviewResponse::from)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Daily review not found."));
+                .orElseThrow(() -> new ResourceNotFoundException("Daily review not found."));
     }
 
     @Transactional
     public DailyReviewResponse create(AppUser user, DailyReviewRequest request) {
+        if (dailyReviewRepository.existsByUserAndReviewDate(user, request.reviewDate())) {
+            throw new ConflictException("Daily review already exists for this date.");
+        }
+
         DailyReview review = new DailyReview();
         review.setUser(user);
         apply(review, request);
@@ -51,7 +55,7 @@ public class DailyReviewService {
 
     private DailyReview findOwned(AppUser user, Long id) {
         return dailyReviewRepository.findByIdAndUser(id, user)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Daily review not found."));
+                .orElseThrow(() -> new ResourceNotFoundException("Daily review not found."));
     }
 
     private void apply(DailyReview review, DailyReviewRequest request) {
@@ -66,4 +70,3 @@ public class DailyReviewService {
         return value == null ? null : value.trim();
     }
 }
-

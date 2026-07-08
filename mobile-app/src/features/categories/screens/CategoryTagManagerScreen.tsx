@@ -9,6 +9,7 @@ import { Button } from '../../../shared/components/Button';
 import { Header } from '../../../shared/components/Header';
 import { Screen } from '../../../shared/components/Screen';
 import { colors } from '../../../shared/constants/theme';
+import { useAsyncAction } from '../../../shared/hooks/useAsyncAction';
 import { getErrorMessage } from '../../../shared/utils/error';
 
 export function CategoryTagManagerScreen() {
@@ -20,6 +21,7 @@ export function CategoryTagManagerScreen() {
   const [tagColor, setTagColor] = useState('#64748b');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const mutation = useAsyncAction();
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
@@ -41,29 +43,36 @@ export function CategoryTagManagerScreen() {
 
   const handleCreateCategory = async () => {
     if (!categoryName.trim()) return;
-    await createCategory({ name: categoryName.trim(), color: categoryColor.trim() || '#2563eb' });
-    setCategoryName('');
-    refresh();
+    const result = await mutation.run(async () => {
+      await createCategory({ name: categoryName.trim(), color: categoryColor.trim() || '#2563eb' });
+      await refresh();
+    });
+    if (result !== null) setCategoryName('');
   };
 
   const handleCreateTag = async () => {
     if (!tagName.trim()) return;
-    await createTag({ name: tagName.trim(), color: tagColor.trim() || '#64748b' });
-    setTagName('');
-    refresh();
+    const result = await mutation.run(async () => {
+      await createTag({ name: tagName.trim(), color: tagColor.trim() || '#64748b' });
+      await refresh();
+    });
+    if (result !== null) setTagName('');
   };
+
+  const visibleError = error || mutation.error;
+  const busy = isLoading || mutation.isLoading;
 
   return (
     <Screen>
       <Header eyebrow="분류 관리" title="카테고리와 태그" />
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      {isLoading ? <ActivityIndicator color={colors.primary} style={styles.loading} /> : null}
+      {visibleError ? <Text style={styles.error}>{visibleError}</Text> : null}
+      {busy ? <ActivityIndicator color={colors.primary} style={styles.loading} /> : null}
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.card}>
           <Text style={styles.cardTitle}>카테고리 추가</Text>
           <TextInput value={categoryName} onChangeText={setCategoryName} placeholder="예: 업무" style={styles.input} />
           <TextInput value={categoryColor} onChangeText={setCategoryColor} placeholder="#2563eb" style={styles.input} autoCapitalize="none" />
-          <Button title="카테고리 저장" onPress={handleCreateCategory} />
+          <Button title="카테고리 저장" loading={mutation.isLoading} onPress={handleCreateCategory} />
         </View>
 
         <View style={styles.list}>
@@ -71,7 +80,7 @@ export function CategoryTagManagerScreen() {
             <View key={category.id} style={styles.row}>
               <View style={[styles.swatch, { backgroundColor: category.color }]} />
               <Text style={styles.rowTitle}>{category.name}</Text>
-              <Button title="삭제" variant="danger" onPress={async () => { await deleteCategory(category.id); refresh(); }} />
+              <Button title="삭제" variant="danger" onPress={() => mutation.run(async () => { await deleteCategory(category.id); await refresh(); })} />
             </View>
           ))}
         </View>
@@ -80,7 +89,7 @@ export function CategoryTagManagerScreen() {
           <Text style={styles.cardTitle}>태그 추가</Text>
           <TextInput value={tagName} onChangeText={setTagName} placeholder="예: 집중" style={styles.input} />
           <TextInput value={tagColor} onChangeText={setTagColor} placeholder="#64748b" style={styles.input} autoCapitalize="none" />
-          <Button title="태그 저장" onPress={handleCreateTag} />
+          <Button title="태그 저장" loading={mutation.isLoading} onPress={handleCreateTag} />
         </View>
 
         <View style={styles.list}>
@@ -88,7 +97,7 @@ export function CategoryTagManagerScreen() {
             <View key={tag.id} style={styles.row}>
               <View style={[styles.swatch, { backgroundColor: tag.color }]} />
               <Text style={styles.rowTitle}>#{tag.name}</Text>
-              <Button title="삭제" variant="danger" onPress={async () => { await deleteTag(tag.id); refresh(); }} />
+              <Button title="삭제" variant="danger" onPress={() => mutation.run(async () => { await deleteTag(tag.id); await refresh(); })} />
             </View>
           ))}
         </View>

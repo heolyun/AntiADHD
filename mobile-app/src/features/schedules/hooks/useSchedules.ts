@@ -10,6 +10,7 @@ import {
 import type { Schedule } from '../dto/schedule.dto';
 import { getErrorMessage } from '../../../shared/utils/error';
 import { toDateKey } from '../../../shared/utils/date';
+import { useAsyncAction } from '../../../shared/hooks/useAsyncAction';
 
 type ScheduleRange = 'today' | 'week' | 'month';
 
@@ -17,6 +18,7 @@ export function useSchedules(range: ScheduleRange, anchorDate: Date) {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const mutation = useAsyncAction();
   const anchorDateKey = toDateKey(anchorDate);
   const anchorYear = anchorDate.getFullYear();
   const anchorMonth = anchorDate.getMonth() + 1;
@@ -46,14 +48,25 @@ export function useSchedules(range: ScheduleRange, anchorDate: Date) {
   }, [refresh]));
 
   async function toggleComplete(schedule: Schedule) {
-    await setScheduleCompleted(schedule.id, !schedule.completed);
-    await refresh();
+    await mutation.run(async () => {
+      await setScheduleCompleted(schedule.id, !schedule.completed);
+      await refresh();
+    });
   }
 
   async function remove(id: number) {
-    await deleteSchedule(id);
-    await refresh();
+    await mutation.run(async () => {
+      await deleteSchedule(id);
+      await refresh();
+    });
   }
 
-  return { schedules, isLoading, error, refresh, toggleComplete, remove };
+  return {
+    schedules,
+    isLoading: isLoading || mutation.isLoading,
+    error: error || mutation.error,
+    refresh,
+    toggleComplete,
+    remove
+  };
 }

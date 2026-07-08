@@ -1,6 +1,8 @@
 package com.antiadhd.schedule;
 
 import com.antiadhd.category.CategoryService;
+import com.antiadhd.common.exception.BadRequestException;
+import com.antiadhd.common.exception.ResourceNotFoundException;
 import com.antiadhd.schedule.dto.CompleteRequest;
 import com.antiadhd.schedule.dto.ScheduleRequest;
 import com.antiadhd.schedule.dto.ScheduleResponse;
@@ -14,10 +16,8 @@ import java.time.YearMonth;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class ScheduleService {
@@ -91,12 +91,12 @@ public class ScheduleService {
 
     private Schedule findOwned(AppUser user, Long id) {
         return scheduleRepository.findByIdAndUser(id, user)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Schedule not found."));
+                .orElseThrow(() -> new ResourceNotFoundException("Schedule not found."));
     }
 
     private void apply(Schedule schedule, ScheduleRequest request) {
         if (!request.endAt().isAfter(request.startAt())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "End time must be after start time.");
+            throw new BadRequestException("End time must be after start time.");
         }
         schedule.setTitle(request.title().trim());
         schedule.setDescription(request.description() == null ? null : request.description().trim());
@@ -114,7 +114,7 @@ public class ScheduleService {
         }
         List<Tag> tags = tagRepository.findByUserAndIdIn(user, tagIds);
         if (tags.size() != tagIds.size()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "One or more tags are invalid.");
+            throw new BadRequestException("One or more tags are invalid.");
         }
         return new LinkedHashSet<>(tags);
     }
