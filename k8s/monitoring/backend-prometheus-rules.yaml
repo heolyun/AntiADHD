@@ -1,0 +1,45 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: antiadhd-backend
+  namespace: antiadhd
+  labels:
+    release: monitoring
+    app.kubernetes.io/name: antiadhd-backend
+    app.kubernetes.io/part-of: antiadhd
+spec:
+  groups:
+    - name: antiadhd-backend
+      rules:
+        - alert: AntiAdhdBackendDown
+          expr: up{namespace="antiadhd", service="antiadhd-backend"} == 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: AntiADHD backend metrics target is down
+            description: Prometheus has been unable to scrape the backend for more than two minutes.
+        - alert: AntiAdhdBackendHigh5xxRate
+          expr: |
+            sum(rate(http_server_requests_seconds_count{application="antiadhd-backend",status=~"5.."}[5m]))
+            /
+            sum(rate(http_server_requests_seconds_count{application="antiadhd-backend"}[5m]))
+            > 0.05
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: AntiADHD backend has a high HTTP 5xx ratio
+            description: More than 5% of measured HTTP requests have returned 5xx responses for five minutes.
+        - alert: AntiAdhdBackendHighJvmHeap
+          expr: |
+            sum(jvm_memory_used_bytes{application="antiadhd-backend",area="heap"})
+            /
+            sum(jvm_memory_max_bytes{application="antiadhd-backend",area="heap"})
+            > 0.85
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: AntiADHD backend JVM heap usage is high
+            description: JVM heap usage has remained above 85% for ten minutes.

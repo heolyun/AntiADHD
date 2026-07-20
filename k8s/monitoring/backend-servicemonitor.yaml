@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: antiadhd-backend
+  namespace: antiadhd
+  labels:
+    release: monitoring
+    app.kubernetes.io/name: antiadhd-backend
+    app.kubernetes.io/part-of: antiadhd
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: antiadhd-backend
+  endpoints:
+    - port: http
+      path: /actuator/prometheus
+      interval: 30s
+      scrapeTimeout: 10s
