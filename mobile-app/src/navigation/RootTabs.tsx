@@ -77,13 +77,17 @@ function MainTabs() {
   );
 }
 
-export function RootTabs() {
+export function RootTabs({
+  navigateToGuideTab
+}: {
+  navigateToGuideTab: (route: keyof RootTabParamList) => void;
+}) {
   const { user } = useAuthContext();
 
   if (!user) return null;
 
   return (
-    <OnboardingProvider userId={user.id}>
+    <OnboardingProvider userId={user.id} navigateToTab={navigateToGuideTab}>
       <Stack.Navigator>
         <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
         <Stack.Screen name="ScheduleDetail" component={ScheduleDetailScreen} options={{ title: labels.scheduleDetail }} />
