@@ -15,6 +15,8 @@ import { DailyReviewScreen } from '../features/reviews/screens/DailyReviewScreen
 import { GoalManagerScreen } from '../features/goals/screens/GoalManagerScreen';
 import { RoutineManagerScreen } from '../features/routines/screens/RoutineManagerScreen';
 import type { RootTabParamList, ScheduleStackParamList } from '../types/navigation';
+import { useAuthContext } from '../features/auth/context/AuthContext';
+import { OnboardingProvider } from '../features/onboarding/context/OnboardingContext';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 const Stack = createNativeStackNavigator<ScheduleStackParamList>();
@@ -76,16 +78,22 @@ function MainTabs() {
 }
 
 export function RootTabs() {
+  const { user } = useAuthContext();
+
+  if (!user) return null;
+
   return (
-    <Stack.Navigator>
-      <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
-      <Stack.Screen name="ScheduleDetail" component={ScheduleDetailScreen} options={{ title: labels.scheduleDetail }} />
-      <Stack.Screen name="ScheduleEdit" component={ScheduleEditScreen} options={{ title: labels.scheduleEdit, presentation: 'modal' }} />
-      <Stack.Screen name="FocusMode" component={FocusModeScreen} options={{ title: labels.focusMode }} />
-      <Stack.Screen name="CategoryTagManager" component={CategoryTagManagerScreen} options={{ title: labels.categoryTagManager }} />
-      <Stack.Screen name="RoutineManager" component={RoutineManagerScreen} options={{ title: labels.routineManager }} />
-      <Stack.Screen name="GoalManager" component={GoalManagerScreen} options={{ title: labels.goalManager }} />
-      <Stack.Screen name="DailyReview" component={DailyReviewScreen} options={{ title: labels.dailyReview }} />
-    </Stack.Navigator>
+    <OnboardingProvider userId={user.id}>
+      <Stack.Navigator>
+        <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
+        <Stack.Screen name="ScheduleDetail" component={ScheduleDetailScreen} options={{ title: labels.scheduleDetail }} />
+        <Stack.Screen name="ScheduleEdit" component={ScheduleEditScreen} options={{ title: labels.scheduleEdit, presentation: 'modal' }} />
+        <Stack.Screen name="FocusMode" component={FocusModeScreen} options={{ title: labels.focusMode }} />
+        <Stack.Screen name="CategoryTagManager" component={CategoryTagManagerScreen} options={{ title: labels.categoryTagManager }} />
+        <Stack.Screen name="RoutineManager" component={RoutineManagerScreen} options={{ title: labels.routineManager }} />
+        <Stack.Screen name="GoalManager" component={GoalManagerScreen} options={{ title: labels.goalManager }} />
+        <Stack.Screen name="DailyReview" component={DailyReviewScreen} options={{ title: labels.dailyReview }} />
+      </Stack.Navigator>
+    </OnboardingProvider>
   );
 }

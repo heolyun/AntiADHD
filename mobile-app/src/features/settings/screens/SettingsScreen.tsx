@@ -5,9 +5,11 @@ import { Header } from '../../../shared/components/Header';
 import { Screen } from '../../../shared/components/Screen';
 import { colors } from '../../../shared/constants/theme';
 import { useAuthContext } from '../../auth/context/AuthContext';
+import { useOnboarding } from '../../onboarding/context/OnboardingContext';
 
 export function SettingsScreen() {
   const { user, logout } = useAuthContext();
+  const { openGuide } = useOnboarding();
   const apiUrl =
     process.env.EXPO_PUBLIC_API_BASE_URL ||
     Constants.expoConfig?.extra?.apiBaseUrl ||
@@ -26,6 +28,8 @@ export function SettingsScreen() {
         <Text style={styles.label}>API 서버</Text>
         <Text style={styles.value}>{apiUrl}</Text>
       </View>
+      <Button title="사용 가이드 다시 보기" variant="secondary" onPress={openGuide} />
+      <View style={styles.spacer} />
       <Button title="로그아웃" variant="danger" onPress={logout} />
     </Screen>
   );
@@ -42,5 +46,6 @@ const styles = StyleSheet.create({
     gap: 5
   },
   label: { color: colors.muted, fontSize: 12, fontWeight: '900', marginTop: 6 },
-  value: { color: colors.text, fontSize: 16, fontWeight: '800' }
+  value: { color: colors.text, fontSize: 16, fontWeight: '800' },
+  spacer: { height: 10 }
 });
