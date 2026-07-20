@@ -43,3 +43,19 @@ spec:
           annotations:
             summary: AntiADHD backend JVM heap usage is high
             description: JVM heap usage has remained above 85% for ten minutes.
+        - alert: AntiAdhdAiWorkerDown
+          expr: up{namespace="antiadhd", service="antiadhd-ai-worker"} == 0
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: AntiADHD AI worker metrics target is down
+            description: Prometheus has been unable to scrape the AI worker for more than two minutes.
+        - alert: AntiAdhdAiJobsFailing
+          expr: increase(antiadhd_ai_jobs_failed_total{application="antiadhd-ai-worker"}[15m]) > 0
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: AntiADHD AI jobs are failing
+            description: At least one AI job permanently failed during the last fifteen minutes.

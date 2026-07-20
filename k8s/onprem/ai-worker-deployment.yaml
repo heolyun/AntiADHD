@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: antiadhd-ai-worker
+  labels:
+    app.kubernetes.io/name: antiadhd-ai-worker
+    app.kubernetes.io/part-of: antiadhd
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: antiadhd-ai-worker
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: antiadhd-ai-worker
+        app.kubernetes.io/part-of: antiadhd
+    spec:
+      terminationGracePeriodSeconds: 120
+      containers:
+        - name: worker
+          image: ghcr.io/YOUR_GITHUB_ID/antiadhd-backend:0.1.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: metrics
+              containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: antiadhd-backend-config
+            - secretRef:
+                name: antiadhd-backend-secret
+            - secretRef:
+                name: antiadhd-openai-secret
+          env:
+            - name: SPRING_APPLICATION_NAME
+              value: antiadhd-ai-worker
+            - name: AI_WORKER_ENABLED
+              value: "true"
+            - name: OPENAI_ENABLED
+              value: "true"
+            - name: OPENAI_MODEL
+              value: gpt-5.6-sol
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: metrics
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 24
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: metrics
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: metrics
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 768Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 100

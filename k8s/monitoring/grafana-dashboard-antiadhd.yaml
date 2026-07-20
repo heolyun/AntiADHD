@@ -109,6 +109,40 @@ data:
           "targets": [{"editorMode": "code", "expr": "sum by (pod) (container_memory_working_set_bytes{namespace=\"antiadhd\",pod=~\"antiadhd-backend-.*\",container=\"backend\"})", "legendFormat": "{{pod}}", "range": true, "refId": "A"}],
           "title": "Backend Pod Memory",
           "type": "timeseries"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1}, {"color": "red", "value": 10}]}}, "overrides": []},
+          "gridPos": {"h": 5, "w": 6, "x": 0, "y": 13},
+          "id": 9,
+          "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto", "wideLayout": true},
+          "targets": [{"editorMode": "code", "expr": "max(antiadhd_ai_jobs_pending{application=\"antiadhd-ai-worker\"})", "legendFormat": "pending", "range": true, "refId": "A"}],
+          "title": "AI Jobs Pending",
+          "type": "stat"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "unit": "short"}, "overrides": []},
+          "gridPos": {"h": 5, "w": 9, "x": 6, "y": 13},
+          "id": 10,
+          "options": {"legend": {"calcs": ["lastNotNull"], "displayMode": "table", "placement": "bottom", "showLegend": true}, "tooltip": {"hideZeros": false, "mode": "multi", "sort": "desc"}},
+          "targets": [
+            {"editorMode": "code", "expr": "increase(antiadhd_ai_jobs_completed_total{application=\"antiadhd-ai-worker\"}[1h])", "legendFormat": "completed", "range": true, "refId": "A"},
+            {"editorMode": "code", "expr": "increase(antiadhd_ai_jobs_retried_total{application=\"antiadhd-ai-worker\"}[1h])", "legendFormat": "retried", "range": true, "refId": "B"},
+            {"editorMode": "code", "expr": "increase(antiadhd_ai_jobs_failed_total{application=\"antiadhd-ai-worker\"}[1h])", "legendFormat": "failed", "range": true, "refId": "C"}
+          ],
+          "title": "AI Job Outcomes (1h)",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 30}, {"color": "red", "value": 60}]}, "unit": "s"}, "overrides": []},
+          "gridPos": {"h": 5, "w": 9, "x": 15, "y": 13},
+          "id": 11,
+          "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false}, "textMode": "auto", "wideLayout": true},
+          "targets": [{"editorMode": "code", "expr": "histogram_quantile(0.95, sum by (le) (rate(antiadhd_ai_job_processing_duration_seconds_bucket{application=\"antiadhd-ai-worker\"}[15m])))", "legendFormat": "P95", "range": true, "refId": "A"}],
+          "title": "AI Processing Time P95",
+          "type": "stat"
         }
       ],
       "refresh": "30s",
@@ -120,5 +154,5 @@ data:
       "timezone": "browser",
       "title": "AntiADHD Overview",
       "uid": "antiadhd-overview",
-      "version": 1
+      "version": 2
     }

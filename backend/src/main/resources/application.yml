@@ -30,6 +30,18 @@ app:
     expiration-ms: ${JWT_EXPIRATION_MS:86400000}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:19006,http://localhost:8081,http://localhost:8082,http://127.0.0.1:19006,http://127.0.0.1:8081,http://127.0.0.1:8082}
+  ai:
+    worker:
+      enabled: ${AI_WORKER_ENABLED:false}
+      poll-delay-ms: ${AI_WORKER_POLL_DELAY_MS:2000}
+      stale-after-seconds: ${AI_WORKER_STALE_AFTER_SECONDS:300}
+      max-attempts: ${AI_WORKER_MAX_ATTEMPTS:3}
+    openai:
+      enabled: ${OPENAI_ENABLED:false}
+      api-key: ${OPENAI_API_KEY:}
+      base-url: ${OPENAI_BASE_URL:https://api.openai.com}
+      model: ${OPENAI_MODEL:gpt-5.6-sol}
+      timeout-seconds: ${OPENAI_TIMEOUT_SECONDS:90}
 
 management:
   endpoints:

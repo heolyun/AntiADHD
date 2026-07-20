@@ -45,8 +45,8 @@ try {
     $sourceImage = 'image: antiadhd-backend:local'
     $replacement = "image: $image"
     $matches = ([regex]::Matches(($rendered -join "`n"), [regex]::Escape($sourceImage))).Count
-    if ($matches -ne 1) {
-        throw "Expected one backend image placeholder, found $matches."
+    if ($matches -lt 1) {
+        throw 'No backend image placeholders were found.'
     }
 
     $manifest = ($rendered -join "`n").Replace($sourceImage, $replacement)
@@ -72,6 +72,14 @@ try {
         --timeout=300s
     if ($LASTEXITCODE -ne 0) {
         throw 'Backend rollout failed.'
+    }
+
+    kubectl --kubeconfig $Kubeconfig rollout status `
+        deployment/antiadhd-ai-worker `
+        -n antiadhd `
+        --timeout=300s
+    if ($LASTEXITCODE -ne 0) {
+        throw 'AI worker rollout failed.'
     }
 
     $healthCheckPassed = $false
