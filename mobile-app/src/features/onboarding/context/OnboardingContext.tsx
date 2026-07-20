@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode, RefObject } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
-import { Modal, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Modal, Platform, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { Button } from '../../../shared/components/Button';
 import { colors } from '../../../shared/constants/theme';
 import type { RootTabParamList } from '../../../types/navigation';
@@ -94,7 +94,8 @@ export function OnboardingProvider({
     if (requestedTargetId.current !== id) return;
     const target = targets.current.get(id)?.current;
     if (!target) return;
-    target.measureInWindow((x, y, width, height) => {
+
+    const updateTargetRect = (x: number, y: number, width: number, height: number) => {
       if (requestedTargetId.current !== id) return;
       const isVisibleOnScreen = width > 0
         && height > 0
@@ -103,7 +104,16 @@ export function OnboardingProvider({
         && x + width <= windowWidth
         && y + height <= windowHeight;
       if (isVisibleOnScreen) setTargetRect({ x, y, width, height });
-    });
+    };
+
+    if (Platform.OS === 'web') {
+      const element = target as unknown as HTMLElement;
+      const rect = element.getBoundingClientRect?.();
+      if (rect) updateTargetRect(rect.left, rect.top, rect.width, rect.height);
+      return;
+    }
+
+    target.measureInWindow(updateTargetRect);
   }, [windowHeight, windowWidth]);
 
   const registerTarget = useCallback((id: string, ref: RefObject<View | null>) => {
