@@ -41,6 +41,24 @@ The manifests expect the following Secrets in the `antiadhd` namespace:
 
 Do not commit real Secret manifests or decrypted values to Git.
 
+## PostgreSQL backups
+
+The on-prem overlay provisions a separate 10 Gi backup PVC and runs
+`antiadhd-postgres-backup` every day at 03:00 Asia/Seoul. Each backup uses
+PostgreSQL custom format, is checked with `pg_restore --list`, and is retained
+for 14 days.
+
+Run an on-demand backup and prove that it can be restored into an isolated,
+temporary database:
+
+```powershell
+.\scripts\verify-postgres-backup.ps1
+```
+
+The verification job checks restored tables and Flyway history, then drops the
+temporary database. The backup PVC is still node-local; copy backups to another
+physical machine before treating this as disaster recovery.
+
 ## Bootstrap local image workflow
 
 The first home-lab deployment uses a locally built image imported into k3s:

@@ -1,0 +1,74 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: antiadhd-postgres-backup
+  labels:
+    app.kubernetes.io/name: antiadhd-postgres
+    app.kubernetes.io/component: backup
+    app.kubernetes.io/part-of: antiadhd
+spec:
+  schedule: "0 3 * * *"
+  timeZone: Asia/Seoul
+  concurrencyPolicy: Forbid
+  startingDeadlineSeconds: 3600
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 1800
+      ttlSecondsAfterFinished: 86400
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: antiadhd-postgres
+            app.kubernetes.io/component: backup
+            app.kubernetes.io/part-of: antiadhd
+        spec:
+          restartPolicy: Never
+          securityContext:
+            fsGroup: 70
+            fsGroupChangePolicy: OnRootMismatch
+          containers:
+            - name: backup
+              image: postgres:16-alpine
+              imagePullPolicy: IfNotPresent
+              env:
+                - name: PGHOST
+                  value: antiadhd-postgres
+                - name: PGDATABASE
+                  value: antiadhd
+                - name: PGUSER
+                  valueFrom:
+                    secretKeyRef:
+                      name: antiadhd-postgres-secret
+                      key: POSTGRES_USER
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: antiadhd-postgres-secret
+                      key: POSTGRES_PASSWORD
+              command:
+                - /bin/sh
+                - -ec
+                - |
+                  umask 077
+                  backup="/backups/antiadhd-$(date -u +%Y%m%dT%H%M%SZ).dump"
+                  pg_dump --format=custom --compress=6 --file="$backup"
+                  pg_restore --list "$backup" >/dev/null
+                  find /backups -type f -name 'antiadhd-*.dump' -mtime +14 -delete
+                  echo "Backup verified: $backup"
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi
+              volumeMounts:
+                - name: backups
+                  mountPath: /backups
+          volumes:
+            - name: backups
+              persistentVolumeClaim:
+                claimName: antiadhd-postgres-backups
