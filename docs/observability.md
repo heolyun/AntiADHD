@@ -50,3 +50,9 @@ The backend publishes Micrometer metrics at `/actuator/prometheus` and is
 discovered through a `ServiceMonitor`. Custom rules cover target availability,
 HTTP 5xx ratio, and JVM heap usage. Alert delivery destinations are configured
 in a later step; until then, alerts are visible in Alertmanager and Grafana.
+
+The provisioned `AntiADHD Overview` dashboard intentionally defaults to a
+15-minute range and 30-second refresh interval. It shows backend availability,
+request rate, P95 response time, 5xx ratio, JVM heap, HikariCP connections, and
+backend Pod CPU and memory without the query load of the larger cluster
+dashboards.

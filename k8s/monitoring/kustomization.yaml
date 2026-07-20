@@ -3,3 +3,4 @@ kind: Kustomization
 resources:
   - backend-servicemonitor.yaml
   - backend-prometheus-rules.yaml
+  - grafana-dashboard-antiadhd.yaml
