@@ -83,6 +83,7 @@ export function OnboardingProvider({
 }) {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const targets = useRef(new Map<string, RefObject<View | null>>());
+  const requestedTargetId = useRef<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
   const [targetRect, setTargetRect] = useState<TargetRect | null>(null);
@@ -90,12 +91,20 @@ export function OnboardingProvider({
   const activeTargetId = isVisible ? steps[stepIndex].targetId : null;
 
   const measureTarget = useCallback((id: string) => {
+    if (requestedTargetId.current !== id) return;
     const target = targets.current.get(id)?.current;
     if (!target) return;
     target.measureInWindow((x, y, width, height) => {
-      if (width > 0 && height > 0) setTargetRect({ x, y, width, height });
+      if (requestedTargetId.current !== id) return;
+      const isVisibleOnScreen = width > 0
+        && height > 0
+        && x < windowWidth
+        && y < windowHeight
+        && x + width > 0
+        && y + height > 0;
+      if (isVisibleOnScreen) setTargetRect({ x, y, width, height });
     });
-  }, []);
+  }, [windowHeight, windowWidth]);
 
   const registerTarget = useCallback((id: string, ref: RefObject<View | null>) => {
     targets.current.set(id, ref);
@@ -105,6 +114,7 @@ export function OnboardingProvider({
   }, []);
 
   const showStep = useCallback((index: number) => {
+    requestedTargetId.current = steps[index].targetId;
     setTargetRect(null);
     setStepIndex(index);
     navigateToTab(steps[index].route);
@@ -131,6 +141,7 @@ export function OnboardingProvider({
 
   const closeGuide = useCallback(async () => {
     await AsyncStorage.setItem(storageKey, 'completed');
+    requestedTargetId.current = null;
     setIsVisible(false);
     setTargetRect(null);
   }, [storageKey]);
