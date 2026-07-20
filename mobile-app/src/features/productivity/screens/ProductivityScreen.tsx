@@ -1,8 +1,9 @@
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { getAiSuggestions } from '../../ai/api/aiApi';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { createTaskBreakdown, getAiJob } from '../../ai/api/aiApi';
+import type { AiJobResponse } from '../../ai/dto/ai.dto';
 import { getCategories } from '../../categories/api/categoryApi';
 import { getFocusSessions } from '../../focus/api/focusApi';
 import { getGoals } from '../../goals/api/goalApi';
@@ -26,7 +27,6 @@ type ProductivitySummary = {
   focusSessions: number;
   completedFocusSessions: number;
   dailyReviews: number;
-  suggestions: string[];
 };
 
 const initialSummary: ProductivitySummary = {
@@ -38,8 +38,7 @@ const initialSummary: ProductivitySummary = {
   completedGoals: 0,
   focusSessions: 0,
   completedFocusSessions: 0,
-  dailyReviews: 0,
-  suggestions: []
+  dailyReviews: 0
 };
 
 export function ProductivityScreen() {
@@ -47,19 +46,23 @@ export function ProductivityScreen() {
   const [summary, setSummary] = useState<ProductivitySummary>(initialSummary);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [goal, setGoal] = useState('');
+  const [availableMinutes, setAvailableMinutes] = useState('60');
+  const [aiJob, setAiJob] = useState<AiJobResponse | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const [categories, tags, routines, goals, focusSessions, dailyReviews, ai] = await Promise.all([
+      const [categories, tags, routines, goals, focusSessions, dailyReviews] = await Promise.all([
         getCategories(),
         getTags(),
         getRoutines(),
         getGoals(),
         getFocusSessions(),
-        getDailyReviews(),
-        getAiSuggestions()
+        getDailyReviews()
       ]);
 
       setSummary({
@@ -71,8 +74,7 @@ export function ProductivityScreen() {
         completedGoals: goals.filter((goal) => goal.status === 'DONE').length,
         focusSessions: focusSessions.length,
         completedFocusSessions: focusSessions.filter((session) => session.completed).length,
-        dailyReviews: dailyReviews.length,
-        suggestions: ai.suggestions
+        dailyReviews: dailyReviews.length
       });
     } catch (err) {
       setError(getErrorMessage(err));
@@ -84,6 +86,41 @@ export function ProductivityScreen() {
   useFocusEffect(useCallback(() => {
     refresh();
   }, [refresh]));
+
+  const generateBreakdown = useCallback(async () => {
+    const trimmedGoal = goal.trim();
+    const minutes = Number(availableMinutes);
+    if (!trimmedGoal) {
+      setAiError('분해할 목표를 입력해 주세요.');
+      return;
+    }
+    if (!Number.isInteger(minutes) || minutes < 5 || minutes > 480) {
+      setAiError('사용 가능 시간은 5~480분 사이로 입력해 주세요.');
+      return;
+    }
+
+    setIsGenerating(true);
+    setAiError(null);
+    setAiJob(null);
+    try {
+      const accepted = await createTaskBreakdown({ goal: trimmedGoal, availableMinutes: minutes });
+      for (let poll = 0; poll < 45; poll += 1) {
+        const job = await getAiJob(accepted.jobId);
+        setAiJob(job);
+        if (job.status === 'COMPLETED') return;
+        if (job.status === 'FAILED') {
+          setAiError(job.failureMessage ?? 'AI 작업 분해에 실패했습니다.');
+          return;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
+      setAiError('처리가 길어지고 있습니다. 잠시 후 다시 시도해 주세요.');
+    } catch (err) {
+      setAiError(getErrorMessage(err));
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [availableMinutes, goal]);
 
   return (
     <Screen>
@@ -112,13 +149,49 @@ export function ProductivityScreen() {
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>AI 확장 준비</Text>
-          <Text style={styles.description}>
-            현재는 외부 AI API를 호출하지 않고, 추후 모델 연동을 위한 API 경계만 제공합니다.
-          </Text>
-          {summary.suggestions.map((suggestion) => (
-            <Text key={suggestion} style={styles.suggestion}>- {suggestion}</Text>
-          ))}
+          <Text style={styles.cardTitle}>AI 작업 분해</Text>
+          <Text style={styles.description}>막막한 목표를 지금 시작할 수 있는 작은 단계로 나눕니다.</Text>
+          <TextInput
+            value={goal}
+            onChangeText={setGoal}
+            placeholder="예: Kubernetes 포트폴리오 발표 준비하기"
+            placeholderTextColor={colors.muted}
+            multiline
+            maxLength={1000}
+            style={[styles.input, styles.goalInput]}
+          />
+          <TextInput
+            value={availableMinutes}
+            onChangeText={setAvailableMinutes}
+            placeholder="사용 가능 시간(분)"
+            placeholderTextColor={colors.muted}
+            keyboardType="number-pad"
+            maxLength={3}
+            style={styles.input}
+          />
+          <Button
+            title="AI로 단계 만들기"
+            onPress={generateBreakdown}
+            loading={isGenerating}
+            disabled={!goal.trim()}
+          />
+          {aiJob && aiJob.status !== 'COMPLETED' ? (
+            <Text style={styles.status}>상태: {aiJob.status} · 시도 {aiJob.attemptCount}회</Text>
+          ) : null}
+          {aiError ? <Text style={styles.error}>{aiError}</Text> : null}
+          {aiJob?.result ? (
+            <View style={styles.result}>
+              <Text style={styles.resultSummary}>{aiJob.result.summary}</Text>
+              <Text style={styles.status}>총 예상 시간 {aiJob.result.totalEstimatedMinutes}분</Text>
+              {aiJob.result.steps.map((step) => (
+                <View key={step.order} style={styles.step}>
+                  <Text style={styles.stepTitle}>{step.order}. {step.title}</Text>
+                  <Text style={styles.description}>{step.description}</Text>
+                  <Text style={styles.status}>{step.estimatedMinutes}분 · 에너지 {step.energyLevel}</Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
         </View>
       </ScrollView>
     </Screen>
@@ -168,6 +241,21 @@ const styles = StyleSheet.create({
   },
   cardTitle: { color: colors.text, fontSize: 18, fontWeight: '900' },
   description: { color: colors.muted, lineHeight: 20 },
-  suggestion: { color: colors.text, lineHeight: 22 },
+  input: {
+    minHeight: 48,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: colors.background,
+    color: colors.text
+  },
+  goalInput: { minHeight: 88, textAlignVertical: 'top' },
+  status: { color: colors.muted, fontSize: 12, fontWeight: '700' },
+  result: { gap: 10, marginTop: 4 },
+  resultSummary: { color: colors.text, lineHeight: 22, fontWeight: '800' },
+  step: { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 10, gap: 4 },
+  stepTitle: { color: colors.text, fontWeight: '900' },
   error: { color: colors.danger, marginBottom: 12, fontWeight: '700' }
 });
