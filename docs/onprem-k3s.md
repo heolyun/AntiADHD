@@ -41,7 +41,7 @@ The manifests expect the following Secrets in the `antiadhd` namespace:
 
 Do not commit real Secret manifests or decrypted values to Git.
 
-## Current local image workflow
+## Bootstrap local image workflow
 
 The first home-lab deployment uses a locally built image imported into k3s:
 
@@ -53,8 +53,35 @@ ssh antiadhd@172.30.1.39 "sudo k3s ctr images import /tmp/antiadhd-backend-local
 ```
 
 This workflow isolates the first cluster deployment from registry and CI/CD
-failures. Replace it with immutable GHCR tags and GitHub Actions before calling
-the environment production-like.
+failures.
+
+## GHCR image workflow
+
+`backend-image.yml` verifies the backend and publishes two GHCR tags on pushes
+to `main`:
+
+- `sha-<full-git-sha>`: immutable deployment tag
+- `main`: moving convenience tag; do not use it for an audited deployment
+
+After the first package publish, make the GHCR package public or configure a
+Kubernetes pull Secret with read-only package credentials. Deploy an immutable
+tag from the trusted Windows administration machine:
+
+```powershell
+.\scripts\deploy-onprem.ps1 -ImageTag sha-<40-character-commit-sha>
+```
+
+Preview rendering and authorization without changing the cluster:
+
+```powershell
+.\scripts\deploy-onprem.ps1 -ImageTag sha-<40-character-commit-sha> -WhatIf
+```
+
+The repository is public, so a persistent self-hosted GitHub Actions runner is
+not installed on the k3s node. GitHub warns that pull requests against public
+repositories can expose a self-hosted runner to untrusted code. Image publishing
+runs on a GitHub-hosted runner; cluster deployment remains a trusted local
+operation until a pull-based GitOps controller is introduced.
 
 ## Deploy and verify
 
@@ -75,10 +102,10 @@ Backups and restore tests are still required.
 
 ## Known transition items
 
-- The on-premises overlay temporarily uses `JPA_DDL_AUTO=update` to bootstrap
-  the empty home-lab database.
-- Add Flyway migrations, then change this value to `validate`.
-- Replace the local image tag with an immutable GHCR tag or digest.
+- Flyway owns schema migrations and Hibernate runs with `JPA_DDL_AUTO=validate`.
+- The existing home-lab database uses Flyway baseline version `1`; fresh
+  databases execute `V1__initial_schema.sql`.
+- Use immutable `sha-<full-git-sha>` GHCR tags for deployments.
 - Add PostgreSQL backup and restore automation.
 - Add TLS before exposing the service outside the trusted LAN.
 - Keep PostgreSQL as a ClusterIP-only service; do not expose port 5432 publicly.
