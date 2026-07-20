@@ -25,6 +25,7 @@ type GuideStep = {
 };
 
 const GUIDE_VERSION = 'v3';
+const getGuideDomId = (id: string) => `guide-target-${id}`;
 const steps: GuideStep[] = [
   {
     route: 'MonthlyCalendar',
@@ -107,8 +108,8 @@ export function OnboardingProvider({
     };
 
     if (Platform.OS === 'web') {
-      const element = target as unknown as HTMLElement;
-      const rect = element.getBoundingClientRect?.();
+      const element = document.getElementById(getGuideDomId(id));
+      const rect = element?.getBoundingClientRect();
       if (rect) updateTargetRect(rect.left, rect.top, rect.width, rect.height);
       return;
     }
@@ -238,7 +239,13 @@ export function GuideTarget({ id, children, style }: { id: string; children: Rea
   useEffect(() => registerTarget(id, ref), [id, registerTarget]);
 
   return (
-    <View ref={ref} collapsable={false} onLayout={() => measureTarget(id)} style={style}>
+    <View
+      ref={ref}
+      nativeID={getGuideDomId(id)}
+      collapsable={false}
+      onLayout={() => measureTarget(id)}
+      style={style}
+    >
       {children}
     </View>
   );
@@ -252,6 +259,7 @@ export function useGuideTarget(id: string) {
 
   return {
     ref,
+    nativeID: getGuideDomId(id),
     onLayout: () => measureTarget(id)
   };
 }

@@ -118,6 +118,7 @@ export function MonthlyCalendarScreen() {
             </View>
             <Button
               ref={monthlyAddTarget.ref}
+              nativeID={monthlyAddTarget.nativeID}
               onLayout={monthlyAddTarget.onLayout}
               title={'\uCD94\uAC00'}
               onPress={() => navigation.navigate('ScheduleEdit', { selectedDate })}
