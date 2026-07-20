@@ -1,4 +1,6 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
+import { forwardRef } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import type { LayoutChangeEvent } from 'react-native';
 import { colors } from '../constants/theme';
 
 type ButtonProps = {
@@ -7,12 +9,18 @@ type ButtonProps = {
   variant?: 'primary' | 'secondary' | 'danger';
   disabled?: boolean;
   loading?: boolean;
+  onLayout?: (event: LayoutChangeEvent) => void;
 };
 
-export function Button({ title, onPress, variant = 'primary', disabled, loading }: ButtonProps) {
+export const Button = forwardRef<View, ButtonProps>(function Button(
+  { title, onPress, variant = 'primary', disabled, loading, onLayout },
+  ref
+) {
   return (
     <Pressable
+      ref={ref}
       onPress={onPress}
+      onLayout={onLayout}
       disabled={disabled || loading}
       style={({ pressed }) => [
         styles.base,
@@ -25,7 +33,7 @@ export function Button({ title, onPress, variant = 'primary', disabled, loading 
       )}
     </Pressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   base: {

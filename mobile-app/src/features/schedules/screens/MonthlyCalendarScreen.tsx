@@ -10,7 +10,7 @@ import { formatDate, groupByDate, toDateKey } from '../../../shared/utils/date';
 import type { ScheduleStackParamList } from '../../../types/navigation';
 import { ScheduleCard } from '../components/ScheduleCard';
 import { useSchedules } from '../hooks/useSchedules';
-import { GuideTarget, useOnboarding } from '../../onboarding/context/OnboardingContext';
+import { useGuideTarget, useOnboarding } from '../../onboarding/context/OnboardingContext';
 
 type Navigation = NativeStackNavigationProp<ScheduleStackParamList>;
 
@@ -19,6 +19,7 @@ const weekdays = ['\uC77C', '\uC6D4', '\uD654', '\uC218', '\uBAA9', '\uAE08', '\
 export function MonthlyCalendarScreen() {
   const navigation = useNavigation<Navigation>();
   const { activeTargetId } = useOnboarding();
+  const monthlyAddTarget = useGuideTarget('monthly-add');
   const scrollRef = useRef<ScrollView>(null);
   const anchor = new Date();
   const todayKey = toDateKey(new Date());
@@ -115,12 +116,12 @@ export function MonthlyCalendarScreen() {
               <Text style={styles.selectedEyebrow}>{'\uC120\uD0DD\uD55C \uB0A0\uC9DC'}</Text>
               <Text style={styles.selectedTitle}>{formatDate(`${selectedDate}T00:00:00`)}</Text>
             </View>
-            <GuideTarget id="monthly-add">
-              <Button
-                title={'\uCD94\uAC00'}
-                onPress={() => navigation.navigate('ScheduleEdit', { selectedDate })}
-              />
-            </GuideTarget>
+            <Button
+              ref={monthlyAddTarget.ref}
+              onLayout={monthlyAddTarget.onLayout}
+              title={'\uCD94\uAC00'}
+              onPress={() => navigation.navigate('ScheduleEdit', { selectedDate })}
+            />
           </View>
 
           {selectedSchedules.length === 0 ? (

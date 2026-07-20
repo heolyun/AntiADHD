@@ -234,6 +234,18 @@ export function GuideTarget({ id, children, style }: { id: string; children: Rea
   );
 }
 
+export function useGuideTarget(id: string) {
+  const { registerTarget, measureTarget } = useOnboarding();
+  const ref = useRef<View>(null);
+
+  useEffect(() => registerTarget(id, ref), [id, registerTarget]);
+
+  return {
+    ref,
+    onLayout: () => measureTarget(id)
+  };
+}
+
 export function useOnboarding() {
   const context = useContext(OnboardingContext);
   if (!context) throw new Error('useOnboarding must be used inside OnboardingProvider.');
