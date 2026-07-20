@@ -7,6 +7,7 @@ import { colors } from '../../../shared/constants/theme';
 import { addDays, formatTime, startOfWeek, toDateKey } from '../../../shared/utils/date';
 import type { ScheduleStackParamList } from '../../../types/navigation';
 import { useSchedules } from '../hooks/useSchedules';
+import { GuideTarget } from '../../onboarding/context/OnboardingContext';
 
 type Navigation = NativeStackNavigationProp<ScheduleStackParamList>;
 
@@ -22,11 +23,11 @@ export function WeeklyScheduleScreen() {
       <Header eyebrow="주간 타임블록" title="이번 주" />
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <ScrollView contentContainerStyle={styles.days}>
-        {days.map((day) => {
+        {days.map((day, dayIndex) => {
           const key = toDateKey(day);
           const items = schedules.filter((item) => item.startAt.slice(0, 10) === key);
           return (
-            <View key={key} style={styles.dayCard}>
+            <GuideTarget key={key} id={dayIndex === 0 ? 'weekly-days' : `weekly-day-${key}`} style={styles.dayCard}>
               <Text style={styles.dayTitle}>
                 {day.toLocaleDateString('ko-KR', { weekday: 'short', month: 'short', day: 'numeric' })}
               </Text>
@@ -44,7 +45,7 @@ export function WeeklyScheduleScreen() {
                   </Pressable>
                 </Pressable>
               ))}
-            </View>
+            </GuideTarget>
           );
         })}
       </ScrollView>

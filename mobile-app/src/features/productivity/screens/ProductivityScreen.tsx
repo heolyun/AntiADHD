@@ -1,6 +1,6 @@
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { createTaskBreakdown, getAiJob } from '../../ai/api/aiApi';
 import type { AiJobResponse } from '../../ai/dto/ai.dto';
@@ -10,6 +10,7 @@ import { getGoals } from '../../goals/api/goalApi';
 import { getDailyReviews } from '../../reviews/api/dailyReviewApi';
 import { getRoutines } from '../../routines/api/routineApi';
 import { getTags } from '../../tags/api/tagApi';
+import { GuideTarget, useOnboarding } from '../../onboarding/context/OnboardingContext';
 import { Button } from '../../../shared/components/Button';
 import { Header } from '../../../shared/components/Header';
 import { Screen } from '../../../shared/components/Screen';
@@ -43,6 +44,8 @@ const initialSummary: ProductivitySummary = {
 
 export function ProductivityScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<ScheduleStackParamList>>();
+  const { activeTargetId } = useOnboarding();
+  const scrollRef = useRef<ScrollView>(null);
   const [summary, setSummary] = useState<ProductivitySummary>(initialSummary);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -87,6 +90,18 @@ export function ProductivityScreen() {
     refresh();
   }, [refresh]));
 
+  useEffect(() => {
+    if (activeTargetId !== 'productivity-actions' && activeTargetId !== 'productivity-ai') return;
+    const timer = setTimeout(() => {
+      if (activeTargetId === 'productivity-ai') {
+        scrollRef.current?.scrollToEnd({ animated: true });
+      } else {
+        scrollRef.current?.scrollTo({ y: 0, animated: true });
+      }
+    }, 80);
+    return () => clearTimeout(timer);
+  }, [activeTargetId]);
+
   const generateBreakdown = useCallback(async () => {
     const trimmedGoal = goal.trim();
     const minutes = Number(availableMinutes);
@@ -127,8 +142,8 @@ export function ProductivityScreen() {
       <Header eyebrow="AI 생산성 관리" title="생산성 대시보드" />
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {isLoading ? <ActivityIndicator color={colors.primary} style={styles.loading} /> : null}
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.actionCard}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.content}>
+        <GuideTarget id="productivity-actions" style={styles.actionCard}>
           <Text style={styles.cardTitle}>바로 실행</Text>
           <View style={styles.actionGrid}>
             <Button title="포커스 모드" onPress={() => navigation.navigate('FocusMode')} />
@@ -137,7 +152,7 @@ export function ProductivityScreen() {
             <Button title="목표 관리" variant="secondary" onPress={() => navigation.navigate('GoalManager')} />
             <Button title="하루 회고" variant="secondary" onPress={() => navigation.navigate('DailyReview')} />
           </View>
-        </View>
+        </GuideTarget>
 
         <View style={styles.grid}>
           <SummaryCard label="카테고리" value={summary.categories} />
@@ -148,9 +163,10 @@ export function ProductivityScreen() {
           <SummaryCard label="Daily Review" value={summary.dailyReviews} />
         </View>
 
-        <View style={styles.card}>
+        <GuideTarget id="productivity-ai" style={styles.card}>
           <Text style={styles.cardTitle}>AI 작업 분해</Text>
           <Text style={styles.description}>막막한 목표를 지금 시작할 수 있는 작은 단계로 나눕니다.</Text>
+          <Text style={styles.inputLabel}>분해할 목표</Text>
           <TextInput
             value={goal}
             onChangeText={setGoal}
@@ -160,10 +176,12 @@ export function ProductivityScreen() {
             maxLength={1000}
             style={[styles.input, styles.goalInput]}
           />
+          <Text style={styles.inputLabel}>사용 가능한 총 시간</Text>
+          <Text style={styles.inputHelp}>AI가 이 시간 안에 끝낼 수 있도록 전체 작업을 나눠요. 단위는 분입니다.</Text>
           <TextInput
             value={availableMinutes}
             onChangeText={setAvailableMinutes}
-            placeholder="사용 가능 시간(분)"
+            placeholder="예: 60분"
             placeholderTextColor={colors.muted}
             keyboardType="number-pad"
             maxLength={3}
@@ -192,7 +210,7 @@ export function ProductivityScreen() {
               ))}
             </View>
           ) : null}
-        </View>
+        </GuideTarget>
       </ScrollView>
     </Screen>
   );
@@ -240,6 +258,8 @@ const styles = StyleSheet.create({
     gap: 8
   },
   cardTitle: { color: colors.text, fontSize: 18, fontWeight: '900' },
+  inputLabel: { color: colors.text, fontSize: 13, fontWeight: '900', marginTop: 4 },
+  inputHelp: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: -4 },
   description: { color: colors.muted, lineHeight: 20 },
   input: {
     minHeight: 48,

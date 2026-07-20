@@ -5,7 +5,7 @@ import { Header } from '../../../shared/components/Header';
 import { Screen } from '../../../shared/components/Screen';
 import { colors } from '../../../shared/constants/theme';
 import { useAuthContext } from '../../auth/context/AuthContext';
-import { useOnboarding } from '../../onboarding/context/OnboardingContext';
+import { GuideTarget, useOnboarding } from '../../onboarding/context/OnboardingContext';
 
 export function SettingsScreen() {
   const { user, logout } = useAuthContext();
@@ -28,7 +28,9 @@ export function SettingsScreen() {
         <Text style={styles.label}>API 서버</Text>
         <Text style={styles.value}>{apiUrl}</Text>
       </View>
-      <Button title="사용 가이드 다시 보기" variant="secondary" onPress={openGuide} />
+      <GuideTarget id="settings-guide">
+        <Button title="사용 가이드 다시 보기" variant="secondary" onPress={openGuide} />
+      </GuideTarget>
       <View style={styles.spacer} />
       <Button title="로그아웃" variant="danger" onPress={logout} />
     </Screen>

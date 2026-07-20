@@ -8,6 +8,7 @@ import { colors } from '../../../shared/constants/theme';
 import { ScheduleList } from '../components/ScheduleList';
 import { useSchedules } from '../hooks/useSchedules';
 import type { ScheduleStackParamList } from '../../../types/navigation';
+import { GuideTarget } from '../../onboarding/context/OnboardingContext';
 
 type Navigation = NativeStackNavigationProp<ScheduleStackParamList>;
 
@@ -34,9 +35,11 @@ export function HomeScreen() {
         onSelect={(schedule) => navigation.navigate('ScheduleDetail', { scheduleId: schedule.id })}
         onToggle={toggleComplete}
       />
-      <Pressable style={styles.fab} onPress={() => navigation.navigate('ScheduleEdit')}>
-        <Text style={styles.fabText}>+</Text>
-      </Pressable>
+      <GuideTarget id="today-add" style={styles.fabContainer}>
+        <Pressable style={styles.fab} onPress={() => navigation.navigate('ScheduleEdit')}>
+          <Text style={styles.fabText}>+</Text>
+        </Pressable>
+      </GuideTarget>
     </Screen>
   );
 }
@@ -53,10 +56,12 @@ const styles = StyleSheet.create({
     fontWeight: '800'
   },
   error: { color: colors.danger, marginBottom: 12, fontWeight: '700' },
-  fab: {
+  fabContainer: {
     position: 'absolute',
     right: 22,
     bottom: 24,
+  },
+  fab: {
     width: 56,
     height: 56,
     borderRadius: 28,

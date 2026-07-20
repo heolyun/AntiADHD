@@ -10,6 +10,7 @@ import { formatDate, groupByDate, toDateKey } from '../../../shared/utils/date';
 import type { ScheduleStackParamList } from '../../../types/navigation';
 import { ScheduleCard } from '../components/ScheduleCard';
 import { useSchedules } from '../hooks/useSchedules';
+import { GuideTarget } from '../../onboarding/context/OnboardingContext';
 
 type Navigation = NativeStackNavigationProp<ScheduleStackParamList>;
 
@@ -101,7 +102,7 @@ export function MonthlyCalendarScreen() {
         </View>
 
         <View style={styles.selectedPanel}>
-          <View style={styles.selectedHeader}>
+          <GuideTarget id="monthly-add" style={styles.selectedHeader}>
             <View style={styles.selectedTitleBox}>
               <Text style={styles.selectedEyebrow}>{'\uC120\uD0DD\uD55C \uB0A0\uC9DC'}</Text>
               <Text style={styles.selectedTitle}>{formatDate(`${selectedDate}T00:00:00`)}</Text>
@@ -110,7 +111,7 @@ export function MonthlyCalendarScreen() {
               title={'\uCD94\uAC00'}
               onPress={() => navigation.navigate('ScheduleEdit', { selectedDate })}
             />
-          </View>
+          </GuideTarget>
 
           {selectedSchedules.length === 0 ? (
             <View style={styles.emptyBox}>
