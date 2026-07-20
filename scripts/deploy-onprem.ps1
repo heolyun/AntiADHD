@@ -11,11 +11,26 @@ $ErrorActionPreference = 'Stop'
 $image = "ghcr.io/heolyun/antiadhd-backend:$ImageTag"
 $overlay = Join-Path $PSScriptRoot '..\k8s\onprem'
 $tempManifest = [IO.Path]::GetTempFileName()
+$previousNoProxy = $env:NO_PROXY
+$previousLowerNoProxy = $env:no_proxy
 
 try {
     if (-not (Test-Path -LiteralPath $Kubeconfig)) {
         throw "Kubeconfig not found: $Kubeconfig"
     }
+
+    $clusterServer = kubectl --kubeconfig $Kubeconfig config view `
+        --minify `
+        -o 'jsonpath={.clusters[0].cluster.server}'
+    if ($LASTEXITCODE -ne 0 -or -not $clusterServer) {
+        throw 'Unable to read the Kubernetes API server from kubeconfig.'
+    }
+
+    $clusterHost = ([Uri]$clusterServer).Host
+    $noProxyEntries = @($previousNoProxy, $clusterHost, 'localhost', '127.0.0.1') `
+        -join ','
+    $env:NO_PROXY = $noProxyEntries
+    $env:no_proxy = $noProxyEntries
 
     kubectl --kubeconfig $Kubeconfig auth can-i patch deployments -n antiadhd | Out-Null
     if ($LASTEXITCODE -ne 0) {
@@ -59,16 +74,26 @@ try {
         throw 'Backend rollout failed.'
     }
 
-    curl.exe --fail --silent --show-error `
-        -H 'Host: api.antiadhd.local' `
-        http://172.30.1.39/actuator/health
-    if ($LASTEXITCODE -ne 0) {
+    $healthCheckPassed = $false
+    for ($attempt = 1; $attempt -le 12; $attempt++) {
+        curl.exe --fail --silent `
+            -H 'Host: api.antiadhd.local' `
+            http://172.30.1.39/actuator/health
+        if ($LASTEXITCODE -eq 0) {
+            $healthCheckPassed = $true
+            break
+        }
+        Start-Sleep -Seconds 5
+    }
+    if (-not $healthCheckPassed) {
         throw 'Ingress health check failed.'
     }
 
     Write-Host "`nDeployed $image"
 }
 finally {
+    $env:NO_PROXY = $previousNoProxy
+    $env:no_proxy = $previousLowerNoProxy
     if (Test-Path -LiteralPath $tempManifest) {
         [IO.File]::Delete($tempManifest)
     }
