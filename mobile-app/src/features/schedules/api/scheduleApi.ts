@@ -26,6 +26,11 @@ export async function createSchedule(payload: ScheduleRequest): Promise<Schedule
   return data;
 }
 
+export async function createSchedules(payloads: ScheduleRequest[]): Promise<Schedule[]> {
+  const { data } = await apiClient.post<Schedule[]>('/schedules/batch', { schedules: payloads });
+  return data;
+}
+
 export async function updateSchedule(id: number, payload: ScheduleRequest): Promise<Schedule> {
   const { data } = await apiClient.put<Schedule>(`/schedules/${id}`, payload);
   return data;

@@ -1,6 +1,7 @@
 package com.antiadhd.schedule;
 
 import com.antiadhd.schedule.dto.CompleteRequest;
+import com.antiadhd.schedule.dto.BatchScheduleRequest;
 import com.antiadhd.schedule.dto.ScheduleRequest;
 import com.antiadhd.schedule.dto.ScheduleResponse;
 import com.antiadhd.user.AppUser;
@@ -42,6 +43,15 @@ public class ScheduleController {
             @Valid @RequestBody ScheduleRequest request
     ) {
         return scheduleService.create(user, request);
+    }
+
+    @PostMapping("/batch")
+    @ResponseStatus(HttpStatus.CREATED)
+    public List<ScheduleResponse> createBatch(
+            @AuthenticationPrincipal AppUser user,
+            @Valid @RequestBody BatchScheduleRequest request
+    ) {
+        return scheduleService.createBatch(user, request.schedules());
     }
 
     @GetMapping

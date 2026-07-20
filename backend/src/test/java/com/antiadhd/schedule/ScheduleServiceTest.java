@@ -3,6 +3,7 @@ package com.antiadhd.schedule;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.when;
 
 import com.antiadhd.category.CategoryService;
@@ -78,6 +79,35 @@ class ScheduleServiceTest {
         assertThatThrownBy(() -> scheduleService.create(user, request(RepeatType.WEEKLY, Set.of(1L, 2L))))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessage("One or more tags are invalid.");
+    }
+
+    @Test
+    void createBatch_savesAllSchedulesTogether() {
+        AppUser user = user();
+        List<ScheduleRequest> requests = List.of(
+                request(RepeatType.NONE, Set.of()),
+                new ScheduleRequest(
+                        "Second block",
+                        "Continue the plan",
+                        LocalDateTime.of(2026, 7, 8, 10, 0),
+                        LocalDateTime.of(2026, 7, 8, 10, 30),
+                        "#f59e0b",
+                        RepeatType.NONE,
+                        null,
+                        Set.of()
+                )
+        );
+        when(scheduleRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        List<ScheduleResponse> responses = scheduleService.createBatch(user, requests);
+
+        assertThat(responses).extracting(ScheduleResponse::title)
+                .containsExactly("Focus block", "Second block");
+        assertThat(responses).extracting(ScheduleResponse::startAt)
+                .containsExactly(
+                        LocalDateTime.of(2026, 7, 8, 9, 0),
+                        LocalDateTime.of(2026, 7, 8, 10, 0)
+                );
     }
 
     private ScheduleRequest request(RepeatType repeatType, Set<Long> tagIds) {

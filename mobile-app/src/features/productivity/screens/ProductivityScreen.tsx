@@ -1,7 +1,7 @@
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { createTaskBreakdown, getAiJob } from '../../ai/api/aiApi';
 import type { AiJobResponse } from '../../ai/dto/ai.dto';
 import { getCategories } from '../../categories/api/categoryApi';
@@ -11,11 +11,13 @@ import { getDailyReviews } from '../../reviews/api/dailyReviewApi';
 import { getRoutines } from '../../routines/api/routineApi';
 import { getTags } from '../../tags/api/tagApi';
 import { GuideTarget, useOnboarding } from '../../onboarding/context/OnboardingContext';
+import { createSchedules } from '../../schedules/api/scheduleApi';
 import { Button } from '../../../shared/components/Button';
 import { Header } from '../../../shared/components/Header';
 import { Screen } from '../../../shared/components/Screen';
 import { colors } from '../../../shared/constants/theme';
 import { getErrorMessage } from '../../../shared/utils/error';
+import { toLocalDateTimeValue } from '../../../shared/utils/date';
 import type { ScheduleStackParamList } from '../../../types/navigation';
 
 type ProductivitySummary = {
@@ -42,6 +44,12 @@ const initialSummary: ProductivitySummary = {
   dailyReviews: 0
 };
 
+function defaultScheduleStart() {
+  const date = new Date();
+  date.setMinutes(Math.ceil((date.getMinutes() + 1) / 30) * 30, 0, 0);
+  return toLocalDateTimeValue(date).slice(0, 16).replace('T', ' ');
+}
+
 export function ProductivityScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<ScheduleStackParamList>>();
   const { activeTargetId } = useOnboarding();
@@ -54,6 +62,10 @@ export function ProductivityScreen() {
   const [aiJob, setAiJob] = useState<AiJobResponse | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [selectedStepOrders, setSelectedStepOrders] = useState<number[]>([]);
+  const [scheduleStart, setScheduleStart] = useState(defaultScheduleStart);
+  const [isSavingSchedules, setIsSavingSchedules] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
@@ -102,6 +114,12 @@ export function ProductivityScreen() {
     return () => clearTimeout(timer);
   }, [activeTargetId]);
 
+  useEffect(() => {
+    if (!aiJob?.result) return;
+    setSelectedStepOrders(aiJob.result.steps.map((step) => step.order));
+    setSaveMessage(null);
+  }, [aiJob?.result]);
+
   const generateBreakdown = useCallback(async () => {
     const trimmedGoal = goal.trim();
     const minutes = Number(availableMinutes);
@@ -136,6 +154,53 @@ export function ProductivityScreen() {
       setIsGenerating(false);
     }
   }, [availableMinutes, goal]);
+
+  const toggleStep = useCallback((order: number) => {
+    setSelectedStepOrders((current) => current.includes(order)
+      ? current.filter((value) => value !== order)
+      : [...current, order]);
+  }, []);
+
+  const saveSelectedSteps = useCallback(async () => {
+    if (!aiJob?.result) return;
+    const normalizedStart = scheduleStart.trim().replace(' ', 'T');
+    const start = new Date(normalizedStart.length === 16 ? `${normalizedStart}:00` : normalizedStart);
+    if (Number.isNaN(start.getTime())) {
+      setAiError('시작 날짜와 시간을 YYYY-MM-DD HH:mm 형식으로 입력해 주세요.');
+      return;
+    }
+    const selectedSteps = aiJob.result.steps.filter((step) => selectedStepOrders.includes(step.order));
+    if (selectedSteps.length === 0) {
+      setAiError('일정으로 저장할 단계를 하나 이상 선택해 주세요.');
+      return;
+    }
+
+    setIsSavingSchedules(true);
+    setAiError(null);
+    setSaveMessage(null);
+    try {
+      let cursor = new Date(start);
+      const schedules = selectedSteps.map((step) => {
+        const stepStart = new Date(cursor);
+        cursor = new Date(cursor.getTime() + step.estimatedMinutes * 60_000);
+        const color = step.energyLevel === 'HIGH' ? '#ef4444' : step.energyLevel === 'MEDIUM' ? '#f59e0b' : '#22c55e';
+        return {
+          title: step.title,
+          description: step.description,
+          startAt: toLocalDateTimeValue(stepStart),
+          endAt: toLocalDateTimeValue(cursor),
+          color,
+          repeatType: 'NONE' as const
+        };
+      });
+      await createSchedules(schedules);
+      setSaveMessage(`${schedules.length}개 단계를 일정으로 저장했습니다.`);
+    } catch (err) {
+      setAiError(getErrorMessage(err));
+    } finally {
+      setIsSavingSchedules(false);
+    }
+  }, [aiJob?.result, scheduleStart, selectedStepOrders]);
 
   return (
     <Screen>
@@ -202,12 +267,33 @@ export function ProductivityScreen() {
               <Text style={styles.resultSummary}>{aiJob.result.summary}</Text>
               <Text style={styles.status}>총 예상 시간 {aiJob.result.totalEstimatedMinutes}분</Text>
               {aiJob.result.steps.map((step) => (
-                <View key={step.order} style={styles.step}>
+                <Pressable
+                  key={step.order}
+                  onPress={() => toggleStep(step.order)}
+                  style={[styles.step, selectedStepOrders.includes(step.order) && styles.selectedStep]}
+                >
+                  <Text style={styles.selection}>{selectedStepOrders.includes(step.order) ? '✓ 일정에 추가' : '○ 제외됨'}</Text>
                   <Text style={styles.stepTitle}>{step.order}. {step.title}</Text>
                   <Text style={styles.description}>{step.description}</Text>
                   <Text style={styles.status}>{step.estimatedMinutes}분 · 에너지 {step.energyLevel}</Text>
-                </View>
+                </Pressable>
               ))}
+              <Text style={styles.inputLabel}>첫 단계 시작 날짜·시간</Text>
+              <Text style={styles.inputHelp}>선택한 단계는 입력한 시간부터 순서대로 이어서 배치됩니다.</Text>
+              <TextInput
+                value={scheduleStart}
+                onChangeText={setScheduleStart}
+                placeholder="YYYY-MM-DD HH:mm"
+                placeholderTextColor={colors.muted}
+                style={styles.input}
+              />
+              <Button
+                title={`선택한 ${selectedStepOrders.length}개를 일정으로 저장`}
+                onPress={saveSelectedSteps}
+                loading={isSavingSchedules}
+                disabled={selectedStepOrders.length === 0}
+              />
+              {saveMessage ? <Text style={styles.success}>{saveMessage}</Text> : null}
             </View>
           ) : null}
         </GuideTarget>
@@ -275,7 +361,10 @@ const styles = StyleSheet.create({
   status: { color: colors.muted, fontSize: 12, fontWeight: '700' },
   result: { gap: 10, marginTop: 4 },
   resultSummary: { color: colors.text, lineHeight: 22, fontWeight: '800' },
-  step: { borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 10, gap: 4 },
+  step: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 12, gap: 4 },
+  selectedStep: { borderColor: colors.primary, backgroundColor: '#eff6ff' },
+  selection: { color: colors.primary, fontSize: 12, fontWeight: '900' },
   stepTitle: { color: colors.text, fontWeight: '900' },
+  success: { color: '#15803d', fontWeight: '800' },
   error: { color: colors.danger, marginBottom: 12, fontWeight: '700' }
 });

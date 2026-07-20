@@ -33,10 +33,18 @@ public class ScheduleService {
 
     @Transactional
     public ScheduleResponse create(AppUser user, ScheduleRequest request) {
-        Schedule schedule = new Schedule();
-        schedule.setUser(user);
-        apply(schedule, request);
+        Schedule schedule = build(user, request);
         return ScheduleResponse.from(scheduleRepository.save(schedule));
+    }
+
+    @Transactional
+    public List<ScheduleResponse> createBatch(AppUser user, List<ScheduleRequest> requests) {
+        List<Schedule> schedules = requests.stream()
+                .map(request -> build(user, request))
+                .toList();
+        return scheduleRepository.saveAll(schedules).stream()
+                .map(ScheduleResponse::from)
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -92,6 +100,13 @@ public class ScheduleService {
     private Schedule findOwned(AppUser user, Long id) {
         return scheduleRepository.findByIdAndUser(id, user)
                 .orElseThrow(() -> new ResourceNotFoundException("Schedule not found."));
+    }
+
+    private Schedule build(AppUser user, ScheduleRequest request) {
+        Schedule schedule = new Schedule();
+        schedule.setUser(user);
+        apply(schedule, request);
+        return schedule;
     }
 
     private void apply(Schedule schedule, ScheduleRequest request) {
