@@ -193,7 +193,6 @@ export function OnboardingProvider({
               <View style={[styles.dim, { left: 0, top: spotlight.y, width: spotlight.x, height: spotlight.height }]} />
               <View style={[styles.dim, { left: spotlight.x + spotlight.width, right: 0, top: spotlight.y, height: spotlight.height }]} />
               <View style={[styles.dim, { left: 0, right: 0, top: spotlight.y + spotlight.height, bottom: 0 }]} />
-              <View style={[styles.spotlight, spotlight]} />
               <Text style={[
                 styles.arrow,
                 cardBelowTarget
@@ -273,13 +272,6 @@ export function useOnboarding() {
 const styles = StyleSheet.create({
   overlay: { flex: 1 },
   dim: { position: 'absolute', backgroundColor: 'rgba(15, 23, 42, 0.58)' },
-  spotlight: {
-    position: 'absolute',
-    borderWidth: 3,
-    borderColor: colors.primary,
-    borderRadius: 14,
-    backgroundColor: 'rgba(37, 99, 235, 0.08)'
-  },
   arrow: { position: 'absolute', color: colors.primary, fontSize: 34, lineHeight: 38, fontWeight: '900' },
   card: {
     position: 'absolute',
