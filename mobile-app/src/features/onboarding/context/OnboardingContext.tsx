@@ -98,10 +98,10 @@ export function OnboardingProvider({
       if (requestedTargetId.current !== id) return;
       const isVisibleOnScreen = width > 0
         && height > 0
-        && x < windowWidth
-        && y < windowHeight
-        && x + width > 0
-        && y + height > 0;
+        && x >= 0
+        && y >= 0
+        && x + width <= windowWidth
+        && y + height <= windowHeight;
       if (isVisibleOnScreen) setTargetRect({ x, y, width, height });
     });
   }, [windowHeight, windowWidth]);

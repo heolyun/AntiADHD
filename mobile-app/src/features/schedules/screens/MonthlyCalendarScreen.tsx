@@ -1,6 +1,6 @@
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Button } from '../../../shared/components/Button';
 import { Header } from '../../../shared/components/Header';
@@ -10,7 +10,7 @@ import { formatDate, groupByDate, toDateKey } from '../../../shared/utils/date';
 import type { ScheduleStackParamList } from '../../../types/navigation';
 import { ScheduleCard } from '../components/ScheduleCard';
 import { useSchedules } from '../hooks/useSchedules';
-import { GuideTarget } from '../../onboarding/context/OnboardingContext';
+import { GuideTarget, useOnboarding } from '../../onboarding/context/OnboardingContext';
 
 type Navigation = NativeStackNavigationProp<ScheduleStackParamList>;
 
@@ -18,6 +18,8 @@ const weekdays = ['\uC77C', '\uC6D4', '\uD654', '\uC218', '\uBAA9', '\uAE08', '\
 
 export function MonthlyCalendarScreen() {
   const navigation = useNavigation<Navigation>();
+  const { activeTargetId } = useOnboarding();
+  const scrollRef = useRef<ScrollView>(null);
   const anchor = new Date();
   const todayKey = toDateKey(new Date());
   const [selectedDate, setSelectedDate] = useState(todayKey);
@@ -34,12 +36,18 @@ export function MonthlyCalendarScreen() {
     return [...blanks, ...days];
   }, [anchor.getFullYear(), anchor.getMonth()]);
 
+  useEffect(() => {
+    if (activeTargetId !== 'monthly-add') return;
+    const timer = setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 80);
+    return () => clearTimeout(timer);
+  }, [activeTargetId]);
+
   return (
     <Screen>
       <Header eyebrow={'\uC6D4\uAC04 \uCE98\uB9B0\uB354'} title={title} />
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView ref={scrollRef} contentContainerStyle={styles.content}>
         <View style={styles.calendar}>
           <View style={styles.weekHeader}>
             {weekdays.map((day, index) => (
@@ -102,16 +110,18 @@ export function MonthlyCalendarScreen() {
         </View>
 
         <View style={styles.selectedPanel}>
-          <GuideTarget id="monthly-add" style={styles.selectedHeader}>
+          <View style={styles.selectedHeader}>
             <View style={styles.selectedTitleBox}>
               <Text style={styles.selectedEyebrow}>{'\uC120\uD0DD\uD55C \uB0A0\uC9DC'}</Text>
               <Text style={styles.selectedTitle}>{formatDate(`${selectedDate}T00:00:00`)}</Text>
             </View>
-            <Button
-              title={'\uCD94\uAC00'}
-              onPress={() => navigation.navigate('ScheduleEdit', { selectedDate })}
-            />
-          </GuideTarget>
+            <GuideTarget id="monthly-add">
+              <Button
+                title={'\uCD94\uAC00'}
+                onPress={() => navigation.navigate('ScheduleEdit', { selectedDate })}
+              />
+            </GuideTarget>
+          </View>
 
           {selectedSchedules.length === 0 ? (
             <View style={styles.emptyBox}>
