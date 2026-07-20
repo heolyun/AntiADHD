@@ -44,7 +44,7 @@ spec:
             - name: OPENAI_ENABLED
               value: "true"
             - name: OPENAI_MODEL
-              value: gpt-5.6-sol
+              value: gpt-5.6-luna
           startupProbe:
             httpGet:
               path: /actuator/health/liveness

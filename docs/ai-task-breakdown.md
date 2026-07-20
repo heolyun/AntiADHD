@@ -19,6 +19,7 @@ PostgreSQL 큐는 현재 사용자 규모에서 별도 Redis/RabbitMQ 운영 부
 ## API 계약
 
 모든 API는 JWT가 필요하며 사용자는 자기 작업만 조회할 수 있다.
+사용자별 작업 접수는 한국 시간 기준 하루 10회로 제한한다. 제한에 도달하면 API는 `429 Too Many Requests`를 반환한다.
 
 ### 작업 접수
 
@@ -67,6 +68,7 @@ Authorization: Bearer <token>
 - `antiadhd-backend`: 요청 검증과 작업 접수/조회만 담당한다.
 - `antiadhd-ai-worker`: 같은 이미지를 사용하지만 `AI_WORKER_ENABLED=true`로 큐 처리만 활성화한다.
 - `antiadhd-openai-secret`: 워커 Deployment에만 주입한다. API Pod에는 OpenAI 키를 주지 않아 노출 범위를 줄인다.
+- 기본 모델은 비용 최적화용 `gpt-5.6-luna`이며 환경변수 `OPENAI_MODEL`로 교체할 수 있다.
 - Prometheus는 대기 작업 수, 완료/재시도/실패 수, 처리 시간을 수집한다.
 - Grafana `AntiADHD Overview`에서 큐와 처리 결과를 확인한다.
 

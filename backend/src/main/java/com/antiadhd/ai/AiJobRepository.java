@@ -14,6 +14,12 @@ public interface AiJobRepository extends JpaRepository<AiJob, UUID> {
 
     long countByStatus(AiJobStatus status);
 
+    long countByUserAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+            AppUser user,
+            Instant start,
+            Instant end
+    );
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query(value = """
             UPDATE ai_jobs

@@ -7,7 +7,7 @@ public class OpenAiProperties {
     private boolean enabled;
     private String apiKey = "";
     private String baseUrl = "https://api.openai.com";
-    private String model = "gpt-5.6-sol";
+    private String model = "gpt-5.6-luna";
     private int timeoutSeconds = 90;
 
     public boolean isEnabled() { return enabled; }

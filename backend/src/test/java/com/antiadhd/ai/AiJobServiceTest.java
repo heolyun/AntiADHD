@@ -7,6 +7,8 @@ import static org.mockito.Mockito.when;
 import com.antiadhd.ai.dto.AiJobAcceptedResponse;
 import com.antiadhd.ai.dto.AiJobResponse;
 import com.antiadhd.ai.dto.CreateTaskBreakdownRequest;
+import com.antiadhd.ai.config.AiUsageProperties;
+import com.antiadhd.common.exception.TooManyRequestsException;
 import com.antiadhd.common.exception.ResourceNotFoundException;
 import com.antiadhd.user.AppUser;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,12 +35,31 @@ class AiJobServiceTest {
     @BeforeEach
     void setUp() {
         Clock clock = Clock.fixed(Instant.parse("2026-07-21T00:00:00Z"), ZoneOffset.UTC);
+        AiUsageProperties usageProperties = new AiUsageProperties();
         aiJobService = new AiJobService(
                 aiJobRepository,
                 new ObjectMapper().findAndRegisterModules(),
                 clock,
+                usageProperties,
                 new SimpleMeterRegistry()
         );
+    }
+
+    @Test
+    void createTaskBreakdown_rejectsWhenDailyLimitIsReached() {
+        AppUser user = user("limited@example.com");
+        when(aiJobRepository.countByUserAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+                org.mockito.ArgumentMatchers.eq(user),
+                org.mockito.ArgumentMatchers.any(Instant.class),
+                org.mockito.ArgumentMatchers.any(Instant.class)
+        )).thenReturn(10L);
+
+        assertThatThrownBy(() -> aiJobService.createTaskBreakdown(
+                user,
+                new CreateTaskBreakdownRequest("Prepare portfolio", null, 60)
+        ))
+                .isInstanceOf(TooManyRequestsException.class)
+                .hasMessage("Daily AI task breakdown limit reached.");
     }
 
     @Test
