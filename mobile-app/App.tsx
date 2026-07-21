@@ -1,4 +1,4 @@
-import { createNavigationContainerRef, NavigationContainer } from '@react-navigation/native';
+import { createNavigationContainerRef, NavigationContainer, type LinkingOptions } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuthContext } from './src/features/auth/context/AuthContext';
 import { SplashScreen } from './src/features/auth/screens/SplashScreen';
@@ -7,6 +7,19 @@ import { RootTabs } from './src/navigation/RootTabs';
 import type { RootTabParamList, ScheduleStackParamList } from './src/types/navigation';
 
 const navigationRef = createNavigationContainerRef<ScheduleStackParamList>();
+const linking: LinkingOptions<ScheduleStackParamList> = {
+  prefixes: ['atiadhd://'],
+  config: {
+    screens: {
+      MainTabs: {
+        screens: {
+          Home: 'today'
+        }
+      },
+      ScheduleEdit: 'schedule/new'
+    }
+  }
+};
 
 function navigateToGuideTab(route: keyof RootTabParamList) {
   if (navigationRef.isReady()) {
@@ -22,7 +35,7 @@ function AppNavigator() {
   }
 
   return (
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContainer ref={navigationRef} linking={linking}>
       {token ? <RootTabs navigateToGuideTab={navigateToGuideTab} /> : <AuthStack />}
     </NavigationContainer>
   );

@@ -11,6 +11,7 @@ import type { Schedule } from '../dto/schedule.dto';
 import { getErrorMessage } from '../../../shared/utils/error';
 import { toDateKey } from '../../../shared/utils/date';
 import { useAsyncAction } from '../../../shared/hooks/useAsyncAction';
+import { saveTodayWidgetData } from '../../widget/widgetStorage';
 
 type ScheduleRange = 'today' | 'week' | 'month';
 
@@ -28,7 +29,9 @@ export function useSchedules(range: ScheduleRange, anchorDate: Date) {
     setError(null);
     try {
       if (range === 'today') {
-        setSchedules(await getTodaySchedules(anchorDateKey));
+        const items = await getTodaySchedules(anchorDateKey);
+        setSchedules(items);
+        await saveTodayWidgetData(items);
       }
       if (range === 'week') {
         setSchedules(await getWeekSchedules(anchorDateKey));

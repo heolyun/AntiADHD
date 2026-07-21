@@ -1,22 +1,51 @@
 {
   "expo": {
-    "name": "AntiADHD",
-    "slug": "antiadhd",
+    "name": "AtiADHD",
+    "slug": "atiadhd",
     "version": "0.1.0",
     "orientation": "portrait",
-    "scheme": "antiadhd",
+    "scheme": "atiadhd",
     "userInterfaceStyle": "light",
     "plugins": [
       "expo-notifications",
-      "expo-audio"
+      "expo-audio",
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "TodaySchedule",
+              "label": "AtiADHD 오늘 일정",
+              "description": "오늘의 다음 일정과 완료 현황을 확인합니다.",
+              "minWidth": "250dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000
+            }
+          ]
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ]
     ],
     "splash": {
       "backgroundColor": "#18202f"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.heolyun.atiadhd"
     },
     "android": {
+      "package": "com.heolyun.atiadhd",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#18202f"
       }
