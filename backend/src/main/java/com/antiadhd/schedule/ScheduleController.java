@@ -121,6 +121,14 @@ public class ScheduleController {
         return scheduleService.month(user, year == null ? now.getYear() : year, month == null ? now.getMonthValue() : month);
     }
 
+    @GetMapping("/overdue")
+    public List<ScheduleResponse> overdue(
+            @AuthenticationPrincipal AppUser user,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime before
+    ) {
+        return scheduleService.overdue(user, before == null ? LocalDateTime.now(clock) : before);
+    }
+
     private LocalDate today() {
         return LocalDate.now(clock);
     }

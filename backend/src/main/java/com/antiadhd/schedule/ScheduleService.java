@@ -102,6 +102,14 @@ public class ScheduleService {
                 .orElseThrow(() -> new ResourceNotFoundException("Schedule not found."));
     }
 
+    @Transactional(readOnly = true)
+    public List<ScheduleResponse> overdue(AppUser user, LocalDateTime before) {
+        return scheduleRepository.findByUserAndCompletedFalseAndEndAtBeforeOrderByStartAtAsc(user, before)
+                .stream()
+                .map(ScheduleResponse::from)
+                .toList();
+    }
+
     private Schedule build(AppUser user, ScheduleRequest request) {
         Schedule schedule = new Schedule();
         schedule.setUser(user);

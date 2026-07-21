@@ -110,6 +110,24 @@ class ScheduleServiceTest {
                 );
     }
 
+    @Test
+    void overdue_returnsOnlyRepositoryResultsInTimeOrder() {
+        AppUser user = user();
+        LocalDateTime before = LocalDateTime.of(2026, 7, 21, 12, 0);
+        Schedule missed = new Schedule();
+        missed.setUser(user);
+        missed.setTitle("Missed block");
+        missed.setStartAt(before.minusHours(2));
+        missed.setEndAt(before.minusHours(1));
+        missed.setColor("#2563eb");
+        when(scheduleRepository.findByUserAndCompletedFalseAndEndAtBeforeOrderByStartAtAsc(user, before))
+                .thenReturn(List.of(missed));
+
+        List<ScheduleResponse> responses = scheduleService.overdue(user, before);
+
+        assertThat(responses).extracting(ScheduleResponse::title).containsExactly("Missed block");
+    }
+
     private ScheduleRequest request(RepeatType repeatType, Set<Long> tagIds) {
         return new ScheduleRequest(
                 " Focus block ",

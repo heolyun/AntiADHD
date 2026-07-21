@@ -17,4 +17,10 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
             LocalDateTime rangeEndExclusive,
             LocalDateTime rangeStartInclusive
     );
+
+    @EntityGraph(attributePaths = {"category", "tags"})
+    List<Schedule> findByUserAndCompletedFalseAndEndAtBeforeOrderByStartAtAsc(
+            AppUser user,
+            LocalDateTime before
+    );
 }

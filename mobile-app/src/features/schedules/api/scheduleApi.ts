@@ -31,6 +31,11 @@ export async function getSchedulesBetween(from: string, to: string): Promise<Sch
   return data;
 }
 
+export async function getOverdueSchedules(before: string): Promise<Schedule[]> {
+  const { data } = await apiClient.get<Schedule[]>('/schedules/overdue', { params: { before } });
+  return data;
+}
+
 export async function createSchedules(payloads: ScheduleRequest[]): Promise<Schedule[]> {
   const { data } = await apiClient.post<Schedule[]>('/schedules/batch', { schedules: payloads });
   return data;
