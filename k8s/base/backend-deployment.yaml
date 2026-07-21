@@ -21,6 +21,9 @@ spec:
         app.kubernetes.io/name: antiadhd-backend
         app.kubernetes.io/part-of: antiadhd
     spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: backend
           image: ghcr.io/YOUR_GITHUB_ID/antiadhd-backend:0.1.0
@@ -63,5 +66,16 @@ spec:
               memory: 768Mi
           securityContext:
             allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 100
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 128Mi

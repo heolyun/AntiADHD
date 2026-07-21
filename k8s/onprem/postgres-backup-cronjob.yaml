@@ -29,6 +29,8 @@ spec:
           securityContext:
             fsGroup: 70
             fsGroupChangePolicy: OnRootMismatch
+            seccompProfile:
+              type: RuntimeDefault
           containers:
             - name: backup
               image: postgres:16-alpine
@@ -65,10 +67,23 @@ spec:
                 limits:
                   cpu: 500m
                   memory: 512Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+                readOnlyRootFilesystem: true
+                runAsNonRoot: true
+                runAsUser: 70
               volumeMounts:
                 - name: backups
                   mountPath: /backups
+                - name: tmp
+                  mountPath: /tmp
           volumes:
             - name: backups
               persistentVolumeClaim:
                 claimName: antiadhd-postgres-backups
+            - name: tmp
+              emptyDir:
+                sizeLimit: 128Mi

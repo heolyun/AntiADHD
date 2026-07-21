@@ -24,6 +24,8 @@ spec:
       terminationGracePeriodSeconds: 120
       securityContext:
         fsGroup: 100
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: worker
           image: ghcr.io/YOUR_GITHUB_ID/antiadhd-backend:0.1.0
@@ -54,6 +56,8 @@ spec:
           volumeMounts:
             - name: voice-jobs
               mountPath: /var/lib/antiadhd/voice-jobs
+            - name: tmp
+              mountPath: /tmp
           startupProbe:
             httpGet:
               path: /actuator/health/liveness
@@ -84,9 +88,16 @@ spec:
               memory: 768Mi
           securityContext:
             allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: true
             runAsNonRoot: true
             runAsUser: 100
       volumes:
         - name: voice-jobs
           persistentVolumeClaim:
             claimName: antiadhd-voice-jobs
+        - name: tmp
+          emptyDir:
+            sizeLimit: 256Mi
