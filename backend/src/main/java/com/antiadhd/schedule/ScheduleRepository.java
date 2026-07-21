@@ -4,6 +4,8 @@ import com.antiadhd.user.AppUser;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDate;
+import com.antiadhd.routine.Routine;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -23,4 +25,6 @@ public interface ScheduleRepository extends JpaRepository<Schedule, Long> {
             AppUser user,
             LocalDateTime before
     );
+
+    boolean existsByRoutineAndRoutineDate(Routine routine, LocalDate routineDate);
 }

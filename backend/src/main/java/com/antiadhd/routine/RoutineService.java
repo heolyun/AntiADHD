@@ -52,6 +52,7 @@ public class RoutineService {
         routine.setDescription(request.description() == null ? null : request.description().trim());
         routine.setRepeatType(request.repeatType() == null ? RepeatType.DAILY : request.repeatType());
         routine.setTargetTime(request.targetTime());
+        routine.setDurationMinutes(request.durationMinutes() == 0 ? 30 : request.durationMinutes());
         routine.setActive(request.active());
     }
 }

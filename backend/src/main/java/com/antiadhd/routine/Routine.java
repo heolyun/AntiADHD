@@ -43,6 +43,9 @@ public class Routine {
     private LocalTime targetTime;
 
     @Column(nullable = false)
+    private int durationMinutes = 30;
+
+    @Column(nullable = false)
     private boolean active = true;
 
     @CreationTimestamp
@@ -64,6 +67,8 @@ public class Routine {
     public void setRepeatType(RepeatType repeatType) { this.repeatType = repeatType; }
     public LocalTime getTargetTime() { return targetTime; }
     public void setTargetTime(LocalTime targetTime) { this.targetTime = targetTime; }
+    public int getDurationMinutes() { return durationMinutes; }
+    public void setDurationMinutes(int durationMinutes) { this.durationMinutes = durationMinutes; }
     public boolean isActive() { return active; }
     public void setActive(boolean active) { this.active = active; }
     public Instant getCreatedAt() { return createdAt; }

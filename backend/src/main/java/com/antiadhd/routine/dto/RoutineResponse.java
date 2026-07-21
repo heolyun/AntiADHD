@@ -11,6 +11,7 @@ public record RoutineResponse(
         String description,
         RepeatType repeatType,
         LocalTime targetTime,
+        int durationMinutes,
         boolean active,
         Instant createdAt,
         Instant updatedAt
@@ -22,6 +23,7 @@ public record RoutineResponse(
                 routine.getDescription(),
                 routine.getRepeatType(),
                 routine.getTargetTime(),
+                routine.getDurationMinutes(),
                 routine.isActive(),
                 routine.getCreatedAt(),
                 routine.getUpdatedAt()

@@ -18,6 +18,8 @@ export function RoutineManagerScreen() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [repeatType, setRepeatType] = useState<RepeatType>('DAILY');
+  const [targetTime, setTargetTime] = useState('09:00');
+  const [durationMinutes, setDurationMinutes] = useState('30');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const mutation = useAsyncAction();
@@ -40,8 +42,17 @@ export function RoutineManagerScreen() {
 
   const handleCreate = async () => {
     if (!title.trim()) return;
+    const minutes = Number(durationMinutes);
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(targetTime)) {
+      setError('실행 시간은 HH:mm 형식으로 입력해 주세요.');
+      return;
+    }
+    if (!Number.isInteger(minutes) || minutes < 1 || minutes > 480) {
+      setError('루틴 시간은 1~480분 사이로 입력해 주세요.');
+      return;
+    }
     const result = await mutation.run(async () => {
-      await createRoutine({ title: title.trim(), description: description.trim(), repeatType, active: true });
+      await createRoutine({ title: title.trim(), description: description.trim(), repeatType, targetTime, durationMinutes: minutes, active: true });
       await refresh();
     });
     if (result !== null) {
@@ -57,6 +68,7 @@ export function RoutineManagerScreen() {
         description: routine.description ?? '',
         repeatType: routine.repeatType,
         targetTime: routine.targetTime,
+        durationMinutes: routine.durationMinutes,
         active: !routine.active
       });
       await refresh();
@@ -76,6 +88,10 @@ export function RoutineManagerScreen() {
           <Text style={styles.cardTitle}>루틴 추가</Text>
           <TextInput value={title} onChangeText={setTitle} placeholder="예: 아침 계획 정리" style={styles.input} />
           <TextInput value={description} onChangeText={setDescription} placeholder="설명" style={[styles.input, styles.multiInput]} multiline />
+          <View style={styles.timeRow}>
+            <TextInput value={targetTime} onChangeText={setTargetTime} placeholder="09:00" maxLength={5} style={[styles.input, styles.timeInput]} />
+            <TextInput value={durationMinutes} onChangeText={(value) => setDurationMinutes(value.replace(/\D/g, ''))} placeholder="30분" keyboardType="number-pad" maxLength={3} style={[styles.input, styles.timeInput]} />
+          </View>
           <View style={styles.segment}>
             {repeatTypes.map((type) => (
               <Pressable key={type} onPress={() => setRepeatType(type)} style={[styles.segmentItem, repeatType === type && styles.segmentActive]}>
@@ -90,7 +106,7 @@ export function RoutineManagerScreen() {
           <View key={routine.id} style={styles.row}>
             <View style={styles.rowText}>
               <Text style={styles.rowTitle}>{routine.title}</Text>
-              <Text style={styles.rowMeta}>{repeatLabels[routine.repeatType]} · {routine.active ? '활성' : '비활성'}</Text>
+              <Text style={styles.rowMeta}>{repeatLabels[routine.repeatType]} · {routine.targetTime?.slice(0, 5) ?? '09:00'} · {routine.durationMinutes}분 · {routine.active ? '활성' : '비활성'}</Text>
             </View>
             <Button title={routine.active ? '끄기' : '켜기'} variant="secondary" onPress={() => toggleActive(routine)} />
             <Button title="삭제" variant="danger" onPress={() => mutation.run(async () => { await deleteRoutine(routine.id); await refresh(); })} />
@@ -108,6 +124,8 @@ const styles = StyleSheet.create({
   cardTitle: { color: colors.text, fontSize: 17, fontWeight: '900' },
   input: { minHeight: 48, borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingHorizontal: 12, color: colors.text, backgroundColor: '#fff' },
   multiInput: { minHeight: 78, paddingTop: 12, textAlignVertical: 'top' },
+  timeRow: { flexDirection: 'row', gap: 8 },
+  timeInput: { flex: 1 },
   segment: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   segmentItem: { borderWidth: 1, borderColor: colors.border, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 9, backgroundColor: '#fff' },
   segmentActive: { borderColor: colors.primary, backgroundColor: '#eff6ff' },

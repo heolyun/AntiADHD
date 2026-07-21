@@ -6,6 +6,7 @@ export type Routine = TimestampedEntity & {
   description?: string | null;
   repeatType: RepeatType;
   targetTime?: string | null;
+  durationMinutes: number;
   active: boolean;
 };
 
@@ -14,5 +15,6 @@ export type RoutineRequest = {
   description?: string;
   repeatType: RepeatType;
   targetTime?: string | null;
+  durationMinutes: number;
   active: boolean;
 };

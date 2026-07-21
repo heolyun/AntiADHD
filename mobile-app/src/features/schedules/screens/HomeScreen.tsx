@@ -12,15 +12,16 @@ import type { ScheduleStackParamList } from '../../../types/navigation';
 import { GuideTarget } from '../../onboarding/context/OnboardingContext';
 import { getOverdueSchedules, updateSchedule } from '../api/scheduleApi';
 import type { Schedule } from '../dto/schedule.dto';
-import { toLocalDateTimeValue } from '../../../shared/utils/date';
+import { toDateKey, toLocalDateTimeValue } from '../../../shared/utils/date';
 import { getErrorMessage } from '../../../shared/utils/error';
+import { materializeRoutines } from '../../routines/api/routineApi';
 
 type Navigation = NativeStackNavigationProp<ScheduleStackParamList>;
 
 export function HomeScreen() {
   const navigation = useNavigation<Navigation>();
   const today = new Date();
-  const { schedules, isLoading, error, toggleComplete } = useSchedules('today', today);
+  const { schedules, isLoading, error, toggleComplete, refresh: refreshSchedules } = useSchedules('today', today);
   const [overdue, setOverdue] = useState<Schedule[]>([]);
   const [overdueError, setOverdueError] = useState<string | null>(null);
 
@@ -34,6 +35,12 @@ export function HomeScreen() {
   }, []);
 
   useFocusEffect(useCallback(() => { refreshOverdue(); }, [refreshOverdue]));
+
+  useFocusEffect(useCallback(() => {
+    materializeRoutines(toDateKey(new Date()))
+      .then(() => refreshSchedules())
+      .catch((err) => setOverdueError(getErrorMessage(err)));
+  }, [refreshSchedules]));
 
   const moveToTomorrow = useCallback(async (schedule: Schedule) => {
     const originalStart = new Date(schedule.startAt);

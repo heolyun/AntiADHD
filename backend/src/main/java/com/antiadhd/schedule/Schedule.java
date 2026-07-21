@@ -2,6 +2,7 @@ package com.antiadhd.schedule;
 
 import com.antiadhd.category.Category;
 import com.antiadhd.tag.Tag;
+import com.antiadhd.routine.Routine;
 import com.antiadhd.user.AppUser;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -19,6 +20,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import org.hibernate.annotations.CreationTimestamp;
@@ -66,6 +68,12 @@ public class Schedule {
 
     @Column(nullable = false)
     private boolean completed = false;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "routine_id")
+    private Routine routine;
+
+    private LocalDate routineDate;
 
     @ManyToMany
     @JoinTable(
@@ -158,6 +166,11 @@ public class Schedule {
     public void setCompleted(boolean completed) {
         this.completed = completed;
     }
+
+    public Routine getRoutine() { return routine; }
+    public void setRoutine(Routine routine) { this.routine = routine; }
+    public LocalDate getRoutineDate() { return routineDate; }
+    public void setRoutineDate(LocalDate routineDate) { this.routineDate = routineDate; }
 
     public Set<Tag> getTags() {
         return tags;
