@@ -26,7 +26,7 @@ const labels = {
   today: '\uC624\uB298',
   week: '\uC8FC\uAC04',
   month: '\uC6D4\uAC04',
-  productivity: '\uC0DD\uC0B0\uC131',
+  productivity: '\uB9AC\uD3EC\uD2B8',
   settings: '\uC124\uC815',
   scheduleDetail: '\uC77C\uC815 \uC0C1\uC138',
   scheduleEdit: '\uC77C\uC815 \uD3B8\uC9D1',

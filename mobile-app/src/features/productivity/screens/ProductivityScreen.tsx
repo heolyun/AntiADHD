@@ -4,14 +4,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { createTaskBreakdown, getAiJob } from '../../ai/api/aiApi';
 import type { AiJobResponse, TaskBreakdownStep } from '../../ai/dto/ai.dto';
-import { getCategories } from '../../categories/api/categoryApi';
 import { getFocusSessions } from '../../focus/api/focusApi';
 import { getGoals } from '../../goals/api/goalApi';
 import { getDailyReviews } from '../../reviews/api/dailyReviewApi';
-import { getRoutines } from '../../routines/api/routineApi';
-import { getTags } from '../../tags/api/tagApi';
 import { GuideTarget, useOnboarding } from '../../onboarding/context/OnboardingContext';
-import { createSchedules, getSchedulesBetween } from '../../schedules/api/scheduleApi';
+import { createSchedules, getOverdueSchedules, getSchedulesBetween } from '../../schedules/api/scheduleApi';
 import type { ScheduleRequest } from '../../schedules/dto/schedule.dto';
 import { Button } from '../../../shared/components/Button';
 import { Header } from '../../../shared/components/Header';
@@ -22,26 +19,24 @@ import { toDateKey, toLocalDateTimeValue } from '../../../shared/utils/date';
 import type { ScheduleStackParamList } from '../../../types/navigation';
 
 type ProductivitySummary = {
-  categories: number;
-  tags: number;
-  routines: number;
-  activeRoutines: number;
-  goals: number;
-  completedGoals: number;
+  scheduled: number;
+  completedSchedules: number;
+  completionRate: number;
+  overdue: number;
+  activeGoals: number;
   focusSessions: number;
-  completedFocusSessions: number;
+  focusMinutes: number;
   dailyReviews: number;
 };
 
 const initialSummary: ProductivitySummary = {
-  categories: 0,
-  tags: 0,
-  routines: 0,
-  activeRoutines: 0,
-  goals: 0,
-  completedGoals: 0,
+  scheduled: 0,
+  completedSchedules: 0,
+  completionRate: 0,
+  overdue: 0,
+  activeGoals: 0,
   focusSessions: 0,
-  completedFocusSessions: 0,
+  focusMinutes: 0,
   dailyReviews: 0
 };
 
@@ -72,30 +67,50 @@ export function ProductivityScreen() {
   const [scheduleConflicts, setScheduleConflicts] = useState<string[]>([]);
   const [pendingSchedules, setPendingSchedules] = useState<ScheduleRequest[] | null>(null);
   const [suggestedStart, setSuggestedStart] = useState<string | null>(null);
+  const [showAiBreakdown, setShowAiBreakdown] = useState(false);
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const [categories, tags, routines, goals, focusSessions, dailyReviews] = await Promise.all([
-        getCategories(),
-        getTags(),
-        getRoutines(),
+      const now = new Date();
+      const weekStart = new Date(now);
+      const day = weekStart.getDay() || 7;
+      weekStart.setDate(weekStart.getDate() - day + 1);
+      weekStart.setHours(0, 0, 0, 0);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 7);
+      const [schedules, overdue, goals, focusSessions, dailyReviews] = await Promise.all([
+        getSchedulesBetween(toLocalDateTimeValue(weekStart), toLocalDateTimeValue(weekEnd)),
+        getOverdueSchedules(toLocalDateTimeValue(now)),
         getGoals(),
         getFocusSessions(),
         getDailyReviews()
       ]);
 
+      const completedSchedules = schedules.filter((schedule) => schedule.completed).length;
+      const weeklyFocus = focusSessions.filter((session) => {
+        const startedAt = new Date(session.startedAt ?? session.createdAt);
+        return session.completed && startedAt >= weekStart && startedAt < weekEnd;
+      });
+      const focusMinutes = weeklyFocus.reduce((total, session) => {
+        if (session.startedAt && session.endedAt) {
+          return total + Math.max(0, Math.round((new Date(session.endedAt).getTime() - new Date(session.startedAt).getTime()) / 60_000));
+        }
+        return total + (session.plannedMinutes ?? 0);
+      }, 0);
+      const weekStartKey = toDateKey(weekStart);
+      const weekEndKey = toDateKey(weekEnd);
+
       setSummary({
-        categories: categories.length,
-        tags: tags.length,
-        routines: routines.length,
-        activeRoutines: routines.filter((routine) => routine.active).length,
-        goals: goals.length,
-        completedGoals: goals.filter((goal) => goal.status === 'DONE').length,
-        focusSessions: focusSessions.length,
-        completedFocusSessions: focusSessions.filter((session) => session.completed).length,
-        dailyReviews: dailyReviews.length
+        scheduled: schedules.length,
+        completedSchedules,
+        completionRate: schedules.length === 0 ? 0 : Math.round((completedSchedules / schedules.length) * 100),
+        overdue: overdue.length,
+        activeGoals: goals.filter((goal) => goal.status !== 'DONE').length,
+        focusSessions: weeklyFocus.length,
+        focusMinutes,
+        dailyReviews: dailyReviews.filter((review) => review.reviewDate >= weekStartKey && review.reviewDate < weekEndKey).length
       });
     } catch (err) {
       setError(getErrorMessage(err));
@@ -112,6 +127,7 @@ export function ProductivityScreen() {
     if (activeTargetId !== 'productivity-actions' && activeTargetId !== 'productivity-ai') return;
     const timer = setTimeout(() => {
       if (activeTargetId === 'productivity-ai') {
+        setShowAiBreakdown(true);
         scrollRef.current?.scrollToEnd({ animated: true });
       } else {
         scrollRef.current?.scrollTo({ y: 0, animated: true });
@@ -285,7 +301,7 @@ export function ProductivityScreen() {
 
   return (
     <Screen>
-      <Header eyebrow="AI 생산성 관리" title="생산성 대시보드" />
+      <Header eyebrow="이번 주 실행 상태" title="리포트" />
       {error ? <Text style={styles.error}>{error}</Text> : null}
       {isLoading ? <ActivityIndicator color={colors.primary} style={styles.loading} /> : null}
       <ScrollView ref={scrollRef} contentContainerStyle={styles.content}>
@@ -300,17 +316,28 @@ export function ProductivityScreen() {
           </View>
         </GuideTarget>
 
+        <View style={styles.insightCard}>
+          <Text style={styles.insightTitle}>{reportHeadline(summary)}</Text>
+          <Text style={styles.insightText}>{reportAdvice(summary)}</Text>
+        </View>
+
         <View style={styles.grid}>
-          <SummaryCard label="카테고리" value={summary.categories} />
-          <SummaryCard label="태그" value={summary.tags} />
-          <SummaryCard label="활성 루틴" value={`${summary.activeRoutines}/${summary.routines}`} />
-          <SummaryCard label="완료 목표" value={`${summary.completedGoals}/${summary.goals}`} />
-          <SummaryCard label="완료 Focus" value={`${summary.completedFocusSessions}/${summary.focusSessions}`} />
-          <SummaryCard label="Daily Review" value={summary.dailyReviews} />
+          <SummaryCard label="이번 주 일정 완료" value={`${summary.completedSchedules}/${summary.scheduled}`} detail={`${summary.completionRate}% 완료`} />
+          <SummaryCard label="집중한 시간" value={`${summary.focusMinutes}분`} detail={`${summary.focusSessions}회 집중`} />
+          <SummaryCard label="밀린 일정" value={summary.overdue} detail={summary.overdue > 0 ? '오늘 다시 배치해 보세요' : '밀린 일정 없음'} tone={summary.overdue > 0 ? 'warning' : 'normal'} />
+          <SummaryCard label="이번 주 회고" value={`${summary.dailyReviews}회`} detail="기록한 날 기준" />
+          <SummaryCard label="진행 중인 목표" value={summary.activeGoals} detail="완료 전 목표" />
         </View>
 
         <GuideTarget id="productivity-ai" style={styles.card}>
-          <Text style={styles.cardTitle}>AI 작업 분해</Text>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionHeaderText}>
+              <Text style={styles.cardTitle}>AI 작업 분해</Text>
+              <Text style={styles.description}>필요할 때만 열어 목표를 실행 단계로 바꿔 보세요.</Text>
+            </View>
+            <Button title={showAiBreakdown ? '접기' : '열기'} variant="secondary" onPress={() => setShowAiBreakdown((current) => !current)} />
+          </View>
+          {showAiBreakdown ? <>
           <Text style={styles.description}>막막한 목표를 지금 시작할 수 있는 작은 단계로 나눕니다.</Text>
           <Text style={styles.inputLabel}>분해할 목표</Text>
           <TextInput
@@ -446,17 +473,33 @@ export function ProductivityScreen() {
               {saveMessage ? <Text style={styles.success}>{saveMessage}</Text> : null}
             </View>
           ) : null}
+          </> : null}
         </GuideTarget>
       </ScrollView>
     </Screen>
   );
 }
 
-function SummaryCard({ label, value }: { label: string; value: string | number }) {
+function reportHeadline(summary: ProductivitySummary) {
+  if (summary.overdue > 0) return `밀린 일정 ${summary.overdue}개를 먼저 정리해 볼까요?`;
+  if (summary.scheduled === 0) return '이번 주 첫 시간 블록을 만들어 보세요.';
+  if (summary.completionRate >= 80) return '이번 주 계획을 안정적으로 실행하고 있어요.';
+  return '완료율보다 다음 한 가지 실행에 집중해 보세요.';
+}
+
+function reportAdvice(summary: ProductivitySummary) {
+  if (summary.overdue > 0) return '끝내기 어려운 일정은 더 작게 나누거나 현실적인 시간으로 옮기는 것이 좋습니다.';
+  if (summary.focusMinutes === 0) return '25분 포커스 세션 하나를 시작하면 실제 집중 시간을 기록할 수 있어요.';
+  if (summary.dailyReviews === 0) return '하루 회고를 남기면 계획과 실제 실행의 차이를 다음 주에 개선할 수 있어요.';
+  return `현재 ${summary.focusMinutes}분 집중했고 일정 ${summary.completedSchedules}개를 완료했습니다.`;
+}
+
+function SummaryCard({ label, value, detail, tone = 'normal' }: { label: string; value: string | number; detail: string; tone?: 'normal' | 'warning' }) {
   return (
-    <View style={styles.summaryCard}>
+    <View style={[styles.summaryCard, tone === 'warning' && styles.warningCard]}>
       <Text style={styles.summaryLabel}>{label}</Text>
       <Text style={styles.summaryValue}>{value}</Text>
+      <Text style={styles.summaryDetail}>{detail}</Text>
     </View>
   );
 }
@@ -474,6 +517,9 @@ const styles = StyleSheet.create({
   },
   actionGrid: { gap: 10 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  insightCard: { borderRadius: 14, padding: 16, backgroundColor: '#eff6ff', borderWidth: 1, borderColor: '#bfdbfe', gap: 6 },
+  insightTitle: { color: colors.text, fontSize: 17, fontWeight: '900' },
+  insightText: { color: colors.muted, lineHeight: 20 },
   summaryCard: {
     width: '48%',
     minHeight: 96,
@@ -485,6 +531,8 @@ const styles = StyleSheet.create({
   },
   summaryLabel: { color: colors.muted, fontSize: 12, fontWeight: '900' },
   summaryValue: { color: colors.text, fontSize: 24, fontWeight: '900', marginTop: 6 },
+  summaryDetail: { color: colors.muted, fontSize: 11, marginTop: 5 },
+  warningCard: { borderColor: '#fbbf24', backgroundColor: '#fffbeb' },
   card: {
     borderWidth: 1,
     borderColor: colors.border,
@@ -494,6 +542,8 @@ const styles = StyleSheet.create({
     gap: 8
   },
   cardTitle: { color: colors.text, fontSize: 18, fontWeight: '900' },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  sectionHeaderText: { flex: 1, gap: 4 },
   inputLabel: { color: colors.text, fontSize: 13, fontWeight: '900', marginTop: 4 },
   inputHelp: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: -4 },
   description: { color: colors.muted, lineHeight: 20 },

@@ -51,9 +51,9 @@ const steps: GuideStep[] = [
   {
     route: 'Productivity',
     targetId: 'productivity-actions',
-    eyebrow: '4 / 6 · 생산성 도구',
+    eyebrow: '4 / 6 · 실행 도구',
     title: '집중·목표·루틴·회고를 관리해요',
-    description: '강조된 바로 실행 영역에서 포커스 모드와 주요 생산성 기능으로 이동할 수 있어요.'
+    description: '강조된 바로 실행 영역에서 포커스 모드와 주요 실행 기능으로 이동할 수 있어요.'
   },
   {
     route: 'Productivity',

@@ -26,6 +26,9 @@ export function VoiceCommandModal({
   const [jobId, setJobId] = useState<string | null>(null);
   const [draft, setDraft] = useState<VoiceCommandResult | null>(null);
   const [title, setTitle] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [startTime, setStartTime] = useState('');
+  const [durationMinutes, setDurationMinutes] = useState('30');
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const polling = useRef(false);
@@ -43,6 +46,12 @@ export function VoiceCommandModal({
         if (job.status === 'COMPLETED' && job.result) {
           setDraft(job.result);
           setTitle(job.result.title);
+          if (job.result.startAt) {
+            const start = new Date(job.result.startAt);
+            setStartDate(localDate(start));
+            setStartTime(localTime(start));
+          }
+          setDurationMinutes(String(job.result.durationMinutes ?? 30));
           setPhase('REVIEW');
           setError(null);
         } else if (job.status === 'FAILED') {
@@ -62,7 +71,7 @@ export function VoiceCommandModal({
   }, [visible, jobId, draft]);
 
   const reset = () => {
-    setPhase('READY'); setJobId(null); setDraft(null); setTitle(''); setError(null);
+    setPhase('READY'); setJobId(null); setDraft(null); setTitle(''); setStartDate(''); setStartTime(''); setDurationMinutes('30'); setError(null);
   };
 
   const close = async () => {
@@ -101,16 +110,24 @@ export function VoiceCommandModal({
 
   const confirm = async () => {
     if (!draft || !title.trim()) return;
+    const minutes = Number(durationMinutes);
+    if (!Number.isInteger(minutes) || minutes < 5 || minutes > 480) {
+      setError('소요 시간은 5분에서 480분 사이로 입력해 주세요.');
+      return;
+    }
     setIsSaving(true);
     try {
       if (draft.intent === 'CREATE_SCHEDULE' && draft.startAt) {
-        const start = new Date(draft.startAt);
-        const end = new Date(start.getTime() + (draft.durationMinutes ?? 30) * 60_000);
+        const start = new Date(`${startDate}T${startTime}:00`);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !/^\d{2}:\d{2}$/.test(startTime) || Number.isNaN(start.getTime())) {
+          throw new Error('날짜와 시간을 YYYY-MM-DD, HH:mm 형식으로 확인해 주세요.');
+        }
+        const end = new Date(start.getTime() + minutes * 60_000);
         await createSchedule({ title: title.trim(), description: draft.description ?? undefined,
           startAt: localDateTime(start), endAt: localDateTime(end), color: '#2f6fed', repeatType: 'NONE', tagIds: [] });
       } else {
         await createInboxItem({ title: title.trim(), description: draft.description ?? undefined,
-          estimatedMinutes: draft.durationMinutes ?? undefined, priority: 'MEDIUM', status: 'INBOX' });
+          estimatedMinutes: minutes, priority: 'MEDIUM', status: 'INBOX' });
       }
       reset();
       onSaved();
@@ -154,7 +171,15 @@ export function VoiceCommandModal({
             <Text style={styles.step}>마지막 단계 · 저장 전 확인</Text>
             <Text style={styles.label}>인식한 말</Text><Text style={styles.transcript}>{draft.transcript}</Text>
             <Text style={styles.label}>일정 제목</Text><TextInput value={title} onChangeText={setTitle} style={styles.input} />
-            <View style={styles.summary}><Text style={styles.summaryText}>{draft.intent === 'CREATE_SCHEDULE' ? `📅 ${formatStart(draft.startAt)} · ${draft.durationMinutes ?? 30}분` : '📥 시간이 없어 Inbox에 저장'}</Text></View>
+            {draft.intent === 'CREATE_SCHEDULE' ? <>
+              <Text style={styles.label}>날짜와 시작 시간</Text>
+              <View style={styles.fieldRow}>
+                <TextInput value={startDate} onChangeText={setStartDate} placeholder="YYYY-MM-DD" keyboardType="numbers-and-punctuation" style={[styles.input, styles.field]} />
+                <TextInput value={startTime} onChangeText={setStartTime} placeholder="HH:mm" keyboardType="numbers-and-punctuation" style={[styles.input, styles.field]} />
+              </View>
+            </> : <View style={styles.summary}><Text style={styles.summaryText}>📥 시간이 없어 Inbox에 저장</Text></View>}
+            <Text style={styles.label}>소요 시간(분)</Text>
+            <TextInput value={durationMinutes} onChangeText={(value) => setDurationMinutes(value.replace(/\D/g, ''))} keyboardType="number-pad" maxLength={3} style={styles.input} />
             {draft.clarificationQuestion ? <Text style={styles.warning}>{draft.clarificationQuestion}</Text> : null}
             <Text style={styles.confidence}>AI 확신도 {Math.round(draft.confidence * 100)}% · 내용을 확인한 뒤 저장하세요.</Text>
             <View style={styles.actions}><View style={styles.action}><Button title="다시 녹음" variant="secondary" onPress={reset} /></View><View style={styles.action}><Button title="확인하고 저장" onPress={confirm} loading={isSaving} /></View></View>
@@ -168,7 +193,8 @@ export function VoiceCommandModal({
 }
 
 function localDateTime(value: Date) { const offset = value.getTimezoneOffset() * 60_000; return new Date(value.getTime() - offset).toISOString().slice(0, 19); }
-function formatStart(value: string | null) { return value ? new Date(value).toLocaleString('ko-KR', { month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '시간 미정'; }
+function localDate(value: Date) { return localDateTime(value).slice(0, 10); }
+function localTime(value: Date) { return localDateTime(value).slice(11, 16); }
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(15,23,42,0.58)', alignItems: 'center', justifyContent: 'center', padding: 20 },
@@ -182,5 +208,6 @@ const styles = StyleSheet.create({
   bigHelp: { color: colors.text, fontSize: 17, fontWeight: '800', textAlign: 'center', marginBottom: 20 }, loadingBox: { paddingVertical: 28, gap: 14 },
   review: { gap: 10 }, step: { color: colors.primary, fontWeight: '900', marginBottom: 4 }, label: { color: colors.muted, fontSize: 12, fontWeight: '800' }, transcript: { color: colors.text, lineHeight: 20 },
   input: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 12, color: colors.text, fontWeight: '800' }, summary: { backgroundColor: colors.background, borderRadius: 10, padding: 12 }, summaryText: { color: colors.text, fontWeight: '800' },
+  fieldRow: { flexDirection: 'row', gap: 10 }, field: { flex: 1 },
   warning: { color: colors.warning, fontWeight: '700' }, confidence: { color: colors.muted, fontSize: 12 }, actions: { flexDirection: 'row', gap: 10, marginTop: 6 }, action: { flex: 1 }, error: { color: colors.danger, fontWeight: '700', textAlign: 'center', marginTop: 14 }
 });
