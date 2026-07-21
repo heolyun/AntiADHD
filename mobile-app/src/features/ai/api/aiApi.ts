@@ -1,4 +1,5 @@
 import { apiClient } from '../../../shared/api/client';
+import { Platform } from 'react-native';
 import type {
   AiJobAcceptedResponse,
   AiJobResponse,
@@ -20,10 +21,13 @@ export async function getAiJob(jobId: string): Promise<AiJobResponse> {
 
 export async function createVoiceCommand(uri: string): Promise<AiJobAcceptedResponse> {
   const form = new FormData();
-  form.append('audio', { uri, name: 'voice-command.m4a', type: 'audio/m4a' } as unknown as Blob);
-  const { data } = await apiClient.post<AiJobAcceptedResponse>('/ai/voice-commands', form, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  });
+  if (Platform.OS === 'web') {
+    const blob = await fetch(uri).then((response) => response.blob());
+    form.append('audio', blob, 'voice-command.webm');
+  } else {
+    form.append('audio', { uri, name: 'voice-command.m4a', type: 'audio/m4a' } as unknown as Blob);
+  }
+  const { data } = await apiClient.post<AiJobAcceptedResponse>('/ai/voice-commands', form);
   return data;
 }
 
