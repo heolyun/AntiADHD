@@ -71,6 +71,7 @@ export function ProductivityScreen() {
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [scheduleConflicts, setScheduleConflicts] = useState<string[]>([]);
   const [pendingSchedules, setPendingSchedules] = useState<ScheduleRequest[] | null>(null);
+  const [suggestedStart, setSuggestedStart] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
@@ -181,6 +182,7 @@ export function ProductivityScreen() {
       : [...current, order]);
     setScheduleConflicts([]);
     setPendingSchedules(null);
+    setSuggestedStart(null);
   }, []);
 
   const updateDraftStep = useCallback((order: number, changes: Partial<TaskBreakdownStep>) => {
@@ -188,6 +190,7 @@ export function ProductivityScreen() {
     setSaveMessage(null);
     setScheduleConflicts([]);
     setPendingSchedules(null);
+    setSuggestedStart(null);
   }, []);
 
   const persistSchedules = useCallback(async (schedules: ScheduleRequest[]) => {
@@ -199,6 +202,7 @@ export function ProductivityScreen() {
       setSaveMessage(`${schedules.length}개 단계를 일정으로 저장했습니다.`);
       setScheduleConflicts([]);
       setPendingSchedules(null);
+      setSuggestedStart(null);
     } catch (err) {
       setAiError(getErrorMessage(err));
     } finally {
@@ -233,6 +237,7 @@ export function ProductivityScreen() {
     setSaveMessage(null);
     setScheduleConflicts([]);
     setPendingSchedules(null);
+    setSuggestedStart(null);
     try {
       let cursor = new Date(start);
       const schedules = selectedSteps.map((step) => {
@@ -248,10 +253,26 @@ export function ProductivityScreen() {
           repeatType: 'NONE' as const
         };
       });
-      const existing = await getSchedulesBetween(schedules[0].startAt, schedules[schedules.length - 1].endAt);
-      if (existing.length > 0) {
-        setScheduleConflicts(existing.map((schedule) => `${schedule.title} · ${schedule.startAt.slice(11, 16)}~${schedule.endAt.slice(11, 16)}`));
+      const proposedStart = new Date(schedules[0].startAt);
+      const proposedEnd = new Date(schedules[schedules.length - 1].endAt);
+      const searchEnd = new Date(proposedStart.getTime() + 7 * 24 * 60 * 60_000);
+      const existing = await getSchedulesBetween(schedules[0].startAt, toLocalDateTimeValue(searchEnd));
+      const conflicts = existing.filter((schedule) => (
+        new Date(schedule.startAt) < proposedEnd && new Date(schedule.endAt) > proposedStart
+      ));
+      if (conflicts.length > 0) {
+        const duration = proposedEnd.getTime() - proposedStart.getTime();
+        let candidate = new Date(proposedStart);
+        for (const schedule of [...existing].sort((left, right) => left.startAt.localeCompare(right.startAt))) {
+          const existingStart = new Date(schedule.startAt);
+          const existingEnd = new Date(schedule.endAt);
+          if (existingEnd <= candidate) continue;
+          if (existingStart.getTime() >= candidate.getTime() + duration) break;
+          candidate = existingEnd;
+        }
+        setScheduleConflicts(conflicts.map((schedule) => `${schedule.title} · ${schedule.startAt.slice(5, 16).replace('T', ' ')}~${schedule.endAt.slice(11, 16)}`));
         setPendingSchedules(schedules);
+        setSuggestedStart(toLocalDateTimeValue(candidate).slice(0, 16).replace('T', ' '));
         return;
       }
       await persistSchedules(schedules);
@@ -384,6 +405,7 @@ export function ProductivityScreen() {
                   setScheduleStart(value);
                   setScheduleConflicts([]);
                   setPendingSchedules(null);
+                  setSuggestedStart(null);
                 }}
                 placeholder="YYYY-MM-DD HH:mm"
                 placeholderTextColor={colors.muted}
@@ -402,6 +424,17 @@ export function ProductivityScreen() {
                     <Text key={conflict} style={styles.conflictText}>• {conflict}</Text>
                   ))}
                   <Text style={styles.inputHelp}>시간을 수정하거나, 겹침을 확인한 뒤 그대로 저장할 수 있습니다.</Text>
+                  {suggestedStart ? (
+                    <Button
+                      title={`추천 빈 시간 적용 · ${suggestedStart}`}
+                      onPress={() => {
+                        setScheduleStart(suggestedStart);
+                        setScheduleConflicts([]);
+                        setPendingSchedules(null);
+                        setSuggestedStart(null);
+                      }}
+                    />
+                  ) : null}
                   <Button
                     title="충돌을 확인했고 그대로 저장"
                     variant="secondary"
