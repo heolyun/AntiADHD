@@ -17,7 +17,7 @@ import { Header } from '../../../shared/components/Header';
 import { Screen } from '../../../shared/components/Screen';
 import { colors } from '../../../shared/constants/theme';
 import { getErrorMessage } from '../../../shared/utils/error';
-import { toLocalDateTimeValue } from '../../../shared/utils/date';
+import { toDateKey, toLocalDateTimeValue } from '../../../shared/utils/date';
 import type { ScheduleStackParamList } from '../../../types/navigation';
 
 type ProductivitySummary = {
@@ -58,6 +58,7 @@ export function ProductivityScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [goal, setGoal] = useState('');
+  const [deadline, setDeadline] = useState('');
   const [availableMinutes, setAvailableMinutes] = useState('60');
   const [aiJob, setAiJob] = useState<AiJobResponse | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -133,12 +134,26 @@ export function ProductivityScreen() {
       setAiError('사용 가능 시간은 5~480분 사이로 입력해 주세요.');
       return;
     }
+    const trimmedDeadline = deadline.trim();
+    if (trimmedDeadline) {
+      const parsedDeadline = new Date(`${trimmedDeadline}T00:00:00`);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmedDeadline)
+        || Number.isNaN(parsedDeadline.getTime())
+        || toDateKey(parsedDeadline) !== trimmedDeadline) {
+        setAiError('마감일은 YYYY-MM-DD 형식의 실제 날짜로 입력해 주세요.');
+        return;
+      }
+    }
 
     setIsGenerating(true);
     setAiError(null);
     setAiJob(null);
     try {
-      const accepted = await createTaskBreakdown({ goal: trimmedGoal, availableMinutes: minutes });
+      const accepted = await createTaskBreakdown({
+        goal: trimmedGoal,
+        deadline: trimmedDeadline || undefined,
+        availableMinutes: minutes
+      });
       for (let poll = 0; poll < 45; poll += 1) {
         const job = await getAiJob(accepted.jobId);
         setAiJob(job);
@@ -155,7 +170,7 @@ export function ProductivityScreen() {
     } finally {
       setIsGenerating(false);
     }
-  }, [availableMinutes, goal]);
+  }, [availableMinutes, deadline, goal]);
 
   const toggleStep = useCallback((order: number) => {
     setSelectedStepOrders((current) => current.includes(order)
@@ -255,6 +270,16 @@ export function ProductivityScreen() {
             multiline
             maxLength={1000}
             style={[styles.input, styles.goalInput]}
+          />
+          <Text style={styles.inputLabel}>마감일(선택)</Text>
+          <Text style={styles.inputHelp}>마감이 있다면 AI가 남은 시간을 고려해 단계를 구성합니다.</Text>
+          <TextInput
+            value={deadline}
+            onChangeText={setDeadline}
+            placeholder="YYYY-MM-DD"
+            placeholderTextColor={colors.muted}
+            maxLength={10}
+            style={styles.input}
           />
           <Text style={styles.inputLabel}>사용 가능한 총 시간</Text>
           <Text style={styles.inputHelp}>AI가 이 시간 안에 끝낼 수 있도록 전체 작업을 나눠요. 단위는 분입니다.</Text>
