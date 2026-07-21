@@ -8,7 +8,6 @@ export type AuthStackParamList = {
 
 export type RootTabParamList = {
   Home: undefined;
-  WeeklySchedule: undefined;
   MonthlyCalendar: undefined;
   Productivity: undefined;
   Settings: undefined;
@@ -17,7 +16,7 @@ export type RootTabParamList = {
 export type ScheduleStackParamList = {
   MainTabs: NavigatorScreenParams<RootTabParamList> | undefined;
   ScheduleDetail: { scheduleId: number };
-  ScheduleEdit: { scheduleId?: number; selectedDate?: string } | undefined;
+  ScheduleEdit: { scheduleId?: number; selectedDate?: string; draftTitle?: string; draftDescription?: string; durationMinutes?: number; inboxItemId?: number } | undefined;
   FocusMode: undefined;
   CategoryTagManager: undefined;
   RoutineManager: undefined;

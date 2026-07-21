@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.ZonedDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import org.springframework.core.io.FileSystemResource;
@@ -25,6 +26,8 @@ public class OpenAiVoiceCommandClient {
             Use CREATE_SCHEDULE only when the user supplied enough date and time information.
             Otherwise use CREATE_INBOX so the user can organize it later.
             Resolve relative Korean dates from the supplied current date/time. Never invent missing time information.
+            The current timezone is Asia/Seoul. Return startAt as local YYYY-MM-DDTHH:mm:ss without Z or an offset.
+            If the user says every day or daily, set repeatType to DAILY. Otherwise set it to NONE.
             Return concise Korean text. Do not execute the action; only create a draft for user confirmation.
             """;
 
@@ -49,7 +52,7 @@ public class OpenAiVoiceCommandClient {
         Map<String, Object> body = Map.of(
                 "model", properties.getModel(),
                 "instructions", INSTRUCTIONS,
-                "input", "Current date/time: " + ZonedDateTime.now() + "\nTranscript: " + transcript,
+                "input", "Current date/time: " + ZonedDateTime.now(ZoneId.of("Asia/Seoul")) + "\nTranscript: " + transcript,
                 "store", false,
                 "max_output_tokens", 800,
                 "reasoning", Map.of("effort", "low"),
@@ -114,10 +117,11 @@ public class OpenAiVoiceCommandClient {
                         "description", nullableString,
                         "startAt", Map.of("type", List.of("string", "null"), "description", "ISO-8601 local date-time or null"),
                         "durationMinutes", Map.of("type", List.of("integer", "null"), "minimum", 5, "maximum", 480),
+                        "repeatType", Map.of("type", "string", "enum", List.of("NONE", "DAILY")),
                         "confidence", Map.of("type", "number", "minimum", 0, "maximum", 1),
                         "clarificationQuestion", nullableString
                 ),
-                "required", List.of("intent", "title", "description", "startAt", "durationMinutes", "confidence", "clarificationQuestion")
+                "required", List.of("intent", "title", "description", "startAt", "durationMinutes", "repeatType", "confidence", "clarificationQuestion")
         );
         return Map.of("type", "json_schema", "name", "antiadhd_voice_command", "strict", true, "schema", schema);
     }

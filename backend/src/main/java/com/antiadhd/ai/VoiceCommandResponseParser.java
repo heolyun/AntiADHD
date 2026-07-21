@@ -40,8 +40,9 @@ public class VoiceCommandResponseParser {
                     parsed.path("intent").asText(),
                     parsed.path("title").asText(),
                     nullableText(parsed, "description"),
-                    nullableText(parsed, "startAt"),
+                    localDateTime(parsed, "startAt"),
                     parsed.path("durationMinutes").isNull() ? null : parsed.path("durationMinutes").asInt(),
+                    parsed.path("repeatType").asText("NONE"),
                     parsed.path("confidence").asDouble(),
                     nullableText(parsed, "clarificationQuestion")
             );
@@ -56,5 +57,13 @@ public class VoiceCommandResponseParser {
     private String nullableText(JsonNode node, String field) {
         JsonNode value = node.path(field);
         return value.isMissingNode() || value.isNull() ? null : value.asText();
+    }
+
+    private String localDateTime(JsonNode node, String field) {
+        String value = nullableText(node, field);
+        if (value == null) return null;
+        // Voice commands are interpreted in Korea local time. Preserve the spoken clock
+        // value even if the model unnecessarily appends Z or an offset.
+        return value.length() >= 16 ? value.substring(0, Math.min(19, value.length())) : value;
     }
 }

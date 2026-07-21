@@ -1,4 +1,5 @@
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Button } from '../../../shared/components/Button';
@@ -8,10 +9,12 @@ import { colors } from '../../../shared/constants/theme';
 import { getErrorMessage } from '../../../shared/utils/error';
 import { createInboxItem, deleteInboxItem, getInboxItems, updateInboxItem } from '../api/inboxApi';
 import type { InboxItem, InboxPriority } from '../dto/inbox.dto';
+import type { ScheduleStackParamList } from '../../../types/navigation';
 
-const priorityLabels: Record<InboxPriority, string> = { LOW: '낮음', MEDIUM: '보통', HIGH: '높음' };
+const priorityLabels: Record<InboxPriority, string> = { LOW: '나중에', MEDIUM: '보통', HIGH: '먼저' };
 
 export function InboxScreen() {
+  const navigation = useNavigation<NativeStackNavigationProp<ScheduleStackParamList>>();
   const [items, setItems] = useState<InboxItem[]>([]);
   const [title, setTitle] = useState('');
   const [estimatedMinutes, setEstimatedMinutes] = useState('');
@@ -87,7 +90,11 @@ export function InboxScreen() {
 
   return (
     <Screen>
-      <Header eyebrow="빠른 입력" title="Inbox" />
+      <Header eyebrow="시간을 아직 정하지 않은 일" title="나중에 정리" />
+      <View style={styles.explanationCard}>
+        <Text style={styles.explanationTitle}>일정과 무엇이 다른가요?</Text>
+        <Text style={styles.help}>일정은 실행할 날짜와 시간이 정해진 시간 블록입니다. 여기는 떠오른 일을 먼저 적어두고, 준비가 되면 ‘일정 잡기’로 시간표에 옮기는 임시 보관함입니다.</Text>
+      </View>
       <View style={styles.captureCard}>
         <Text style={styles.help}>시간을 정하지 않아도 괜찮아요. 먼저 떠오른 일을 저장하세요.</Text>
         <TextInput
@@ -109,6 +116,7 @@ export function InboxScreen() {
           maxLength={3}
           style={styles.input}
         />
+        <Text style={styles.priorityHelp}>처리 순서 · 나중에 / 보통 / 먼저 할 일</Text>
         <View style={styles.priorityRow}>
           {(Object.keys(priorityLabels) as InboxPriority[]).map((value) => (
             <View key={value} style={styles.priorityButton}>
@@ -120,29 +128,33 @@ export function InboxScreen() {
             </View>
           ))}
         </View>
-        <Button title="Inbox에 저장" onPress={addItem} loading={isLoading} disabled={!title.trim()} />
+        <Button title="나중에 정리함에 저장" onPress={addItem} loading={isLoading} disabled={!title.trim()} />
       </View>
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <ScrollView contentContainerStyle={styles.list}>
         <Text style={styles.sectionTitle}>정리할 항목 {openItems.length}</Text>
-        {openItems.length === 0 ? <Text style={styles.empty}>Inbox가 비어 있습니다.</Text> : null}
+        {openItems.length === 0 ? <Text style={styles.empty}>나중에 정리할 일이 없습니다.</Text> : null}
         {openItems.map((item) => (
-          <InboxCard key={item.id} item={item} onToggle={toggleDone} onDelete={remove} />
+          <InboxCard key={item.id} item={item} onToggle={toggleDone} onDelete={remove} onPlan={(selected) => navigation.navigate('ScheduleEdit', {
+            draftTitle: selected.title, draftDescription: selected.description ?? undefined,
+            durationMinutes: selected.estimatedMinutes ?? 60, inboxItemId: selected.id
+          })} />
         ))}
         {doneItems.length > 0 ? <Text style={styles.sectionTitle}>완료 {doneItems.length}</Text> : null}
         {doneItems.map((item) => (
-          <InboxCard key={item.id} item={item} onToggle={toggleDone} onDelete={remove} />
+          <InboxCard key={item.id} item={item} onToggle={toggleDone} onDelete={remove} onPlan={() => undefined} />
         ))}
       </ScrollView>
     </Screen>
   );
 }
 
-function InboxCard({ item, onToggle, onDelete }: {
+function InboxCard({ item, onToggle, onDelete, onPlan }: {
   item: InboxItem;
   onToggle: (item: InboxItem) => void;
   onDelete: (id: number) => void;
+  onPlan: (item: InboxItem) => void;
 }) {
   return (
     <View style={[styles.itemCard, item.status === 'DONE' && styles.doneCard]}>
@@ -151,6 +163,7 @@ function InboxCard({ item, onToggle, onDelete }: {
         우선순위 {priorityLabels[item.priority]}{item.estimatedMinutes ? ` · 약 ${item.estimatedMinutes}분` : ''}
       </Text>
       <View style={styles.itemActions}>
+        {item.status !== 'DONE' ? <View style={styles.action}><Button title="일정 잡기" onPress={() => onPlan(item)} /></View> : null}
         <View style={styles.action}><Button title={item.status === 'DONE' ? '되돌리기' : '완료'} variant="secondary" onPress={() => onToggle(item)} /></View>
         <View style={styles.action}><Button title="삭제" variant="danger" onPress={() => onDelete(item.id)} /></View>
       </View>
@@ -159,10 +172,13 @@ function InboxCard({ item, onToggle, onDelete }: {
 }
 
 const styles = StyleSheet.create({
+  explanationCard: { borderWidth: 1, borderColor: '#bfdbfe', borderRadius: 14, padding: 14, backgroundColor: '#eff6ff', gap: 6, marginBottom: 12 },
+  explanationTitle: { color: colors.text, fontWeight: '900' },
   captureCard: { borderWidth: 1, borderColor: colors.border, borderRadius: 14, padding: 14, backgroundColor: colors.surface, gap: 10, marginBottom: 14 },
   help: { color: colors.muted, lineHeight: 20 },
   input: { minHeight: 48, borderWidth: 1, borderColor: colors.border, borderRadius: 10, paddingHorizontal: 12, backgroundColor: colors.background, color: colors.text },
   priorityRow: { flexDirection: 'row', gap: 8 },
+  priorityHelp: { color: colors.muted, fontSize: 12, fontWeight: '700' },
   priorityButton: { flex: 1 },
   error: { color: colors.danger, fontWeight: '700', marginBottom: 10 },
   list: { gap: 10, paddingBottom: 28 },

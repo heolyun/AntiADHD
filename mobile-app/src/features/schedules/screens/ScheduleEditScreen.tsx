@@ -11,13 +11,18 @@ import { getErrorMessage } from '../../../shared/utils/error';
 import type { RepeatType } from '../../../shared/types/api';
 import type { ScheduleEditProps } from '../../../types/navigation';
 import { useScheduleEditor } from '../hooks/useScheduleEditor';
+import { deleteInboxItem } from '../../inbox/api/inboxApi';
 
 const repeatTypes: RepeatType[] = ['NONE', 'DAILY', 'WEEKLY', 'MONTHLY'];
 
 export function ScheduleEditScreen({ navigation, route }: ScheduleEditProps) {
   const scheduleId = route.params?.scheduleId;
   const selectedDate = route.params?.selectedDate;
-  const { form, setForm, isLoading, isSaving, error, save } = useScheduleEditor(scheduleId, selectedDate);
+  const { form, setForm, isLoading, isSaving, error, save } = useScheduleEditor(scheduleId, selectedDate, {
+    title: route.params?.draftTitle,
+    description: route.params?.draftDescription,
+    durationMinutes: route.params?.durationMinutes
+  });
   const [categories, setCategories] = useState<Category[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [metaError, setMetaError] = useState<string | null>(null);
@@ -39,6 +44,7 @@ export function ScheduleEditScreen({ navigation, route }: ScheduleEditProps) {
 
   async function handleSave() {
     await save();
+    if (route.params?.inboxItemId) await deleteInboxItem(route.params.inboxItemId);
     navigation.goBack();
   }
 

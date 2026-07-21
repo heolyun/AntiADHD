@@ -7,7 +7,6 @@ import { MonthlyCalendarScreen } from '../features/schedules/screens/MonthlyCale
 import { ScheduleDetailScreen } from '../features/schedules/screens/ScheduleDetailScreen';
 import { ScheduleEditScreen } from '../features/schedules/screens/ScheduleEditScreen';
 import { SettingsScreen } from '../features/settings/screens/SettingsScreen';
-import { WeeklyScheduleScreen } from '../features/schedules/screens/WeeklyScheduleScreen';
 import { ProductivityScreen } from '../features/productivity/screens/ProductivityScreen';
 import { FocusModeScreen } from '../features/focus/screens/FocusModeScreen';
 import { CategoryTagManagerScreen } from '../features/categories/screens/CategoryTagManagerScreen';
@@ -24,7 +23,6 @@ const Stack = createNativeStackNavigator<ScheduleStackParamList>();
 
 const labels = {
   today: '\uC624\uB298',
-  week: '\uC8FC\uAC04',
   month: '\uC6D4\uAC04',
   productivity: '\uB9AC\uD3EC\uD2B8',
   settings: '\uC124\uC815',
@@ -35,7 +33,7 @@ const labels = {
   routineManager: '\uB8E8\uD2F4',
   goalManager: '\uBAA9\uD45C',
   dailyReview: '\uD558\uB8E8 \uD68C\uACE0',
-  inbox: 'Inbox'
+  inbox: '\uB098\uC911\uC5D0 \uC815\uB9AC'
 };
 
 function MainTabs() {
@@ -72,7 +70,6 @@ function MainTabs() {
     >
       <Tab.Screen name="MonthlyCalendar" component={MonthlyCalendarScreen} options={{ title: labels.month }} />
       <Tab.Screen name="Home" component={HomeScreen} options={{ title: labels.today }} />
-      <Tab.Screen name="WeeklySchedule" component={WeeklyScheduleScreen} options={{ title: labels.week }} />
       <Tab.Screen name="Productivity" component={ProductivityScreen} options={{ title: labels.productivity }} />
       <Tab.Screen name="Settings" component={SettingsScreen} options={{ title: labels.settings }} />
     </Tab.Navigator>

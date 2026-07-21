@@ -6,6 +6,7 @@ import { colors } from '../../../shared/constants/theme';
 import { getErrorMessage } from '../../../shared/utils/error';
 import { createInboxItem } from '../../inbox/api/inboxApi';
 import { createSchedule } from '../../schedules/api/scheduleApi';
+import { createRoutine, materializeRoutines } from '../../routines/api/routineApi';
 import { createVoiceCommand, getVoiceCommand } from '../api/aiApi';
 import type { VoiceCommandResult } from '../dto/ai.dto';
 
@@ -29,6 +30,7 @@ export function VoiceCommandModal({
   const [startDate, setStartDate] = useState('');
   const [startTime, setStartTime] = useState('');
   const [durationMinutes, setDurationMinutes] = useState('30');
+  const [repeatType, setRepeatType] = useState<'NONE' | 'DAILY'>('NONE');
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const polling = useRef(false);
@@ -52,6 +54,7 @@ export function VoiceCommandModal({
             setStartTime(localTime(start));
           }
           setDurationMinutes(String(job.result.durationMinutes ?? 30));
+          setRepeatType(job.result.repeatType ?? 'NONE');
           setPhase('REVIEW');
           setError(null);
         } else if (job.status === 'FAILED') {
@@ -71,7 +74,7 @@ export function VoiceCommandModal({
   }, [visible, jobId, draft]);
 
   const reset = () => {
-    setPhase('READY'); setJobId(null); setDraft(null); setTitle(''); setStartDate(''); setStartTime(''); setDurationMinutes('30'); setError(null);
+    setPhase('READY'); setJobId(null); setDraft(null); setTitle(''); setStartDate(''); setStartTime(''); setDurationMinutes('30'); setRepeatType('NONE'); setError(null);
   };
 
   const close = async () => {
@@ -122,9 +125,15 @@ export function VoiceCommandModal({
         if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !/^\d{2}:\d{2}$/.test(startTime) || Number.isNaN(start.getTime())) {
           throw new Error('날짜와 시간을 YYYY-MM-DD, HH:mm 형식으로 확인해 주세요.');
         }
-        const end = new Date(start.getTime() + minutes * 60_000);
-        await createSchedule({ title: title.trim(), description: draft.description ?? undefined,
-          startAt: localDateTime(start), endAt: localDateTime(end), color: '#2f6fed', repeatType: 'NONE', tagIds: [] });
+        if (repeatType === 'DAILY') {
+          await createRoutine({ title: title.trim(), description: draft.description ?? undefined,
+            repeatType: 'DAILY', targetTime: startTime, durationMinutes: minutes, active: true });
+          await materializeRoutines(startDate);
+        } else {
+          const end = new Date(start.getTime() + minutes * 60_000);
+          await createSchedule({ title: title.trim(), description: draft.description ?? undefined,
+            startAt: localDateTime(start), endAt: localDateTime(end), color: '#2f6fed', repeatType: 'NONE', tagIds: [] });
+        }
       } else {
         await createInboxItem({ title: title.trim(), description: draft.description ?? undefined,
           estimatedMinutes: minutes, priority: 'MEDIUM', status: 'INBOX' });
@@ -180,9 +189,16 @@ export function VoiceCommandModal({
             </> : <View style={styles.summary}><Text style={styles.summaryText}>📥 시간이 없어 Inbox에 저장</Text></View>}
             <Text style={styles.label}>소요 시간(분)</Text>
             <TextInput value={durationMinutes} onChangeText={(value) => setDurationMinutes(value.replace(/\D/g, ''))} keyboardType="number-pad" maxLength={3} style={styles.input} />
+            {draft.intent === 'CREATE_SCHEDULE' ? <>
+              <Text style={styles.label}>반복</Text>
+              <View style={styles.fieldRow}>
+                <View style={styles.field}><Button title="한 번만" variant={repeatType === 'NONE' ? 'primary' : 'secondary'} onPress={() => setRepeatType('NONE')} /></View>
+                <View style={styles.field}><Button title="매일 반복" variant={repeatType === 'DAILY' ? 'primary' : 'secondary'} onPress={() => setRepeatType('DAILY')} /></View>
+              </View>
+            </> : null}
             {draft.clarificationQuestion ? <Text style={styles.warning}>{draft.clarificationQuestion}</Text> : null}
             <Text style={styles.confidence}>AI 확신도 {Math.round(draft.confidence * 100)}% · 내용을 확인한 뒤 저장하세요.</Text>
-            <View style={styles.actions}><View style={styles.action}><Button title="다시 녹음" variant="secondary" onPress={reset} /></View><View style={styles.action}><Button title="확인하고 저장" onPress={confirm} loading={isSaving} /></View></View>
+            <View style={styles.actions}><View style={styles.action}><Button title="다시 녹음" variant="secondary" onPress={reset} /></View><View style={styles.action}><Button title={repeatType === 'DAILY' ? '매일 루틴으로 저장' : '확인하고 저장'} onPress={confirm} loading={isSaving} /></View></View>
           </View> : null}
 
           {error ? <Text style={styles.error}>{error}</Text> : null}

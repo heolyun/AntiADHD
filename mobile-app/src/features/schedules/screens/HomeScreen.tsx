@@ -75,7 +75,7 @@ export function HomeScreen() {
         right={(
           <View style={styles.headerActions}>
             <Button title="🎤" variant="secondary" onPress={() => setVoiceModalVisible(true)} />
-            <Button title="Inbox" variant="secondary" onPress={() => navigation.navigate('Inbox')} />
+            <Button title="나중에" variant="secondary" onPress={() => navigation.navigate('Inbox')} />
             <Button title="일정 추가" onPress={() => navigation.navigate('ScheduleEdit')} />
           </View>
         )}

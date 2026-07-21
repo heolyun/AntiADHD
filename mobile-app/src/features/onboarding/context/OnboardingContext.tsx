@@ -24,48 +24,41 @@ type GuideStep = {
   description: string;
 };
 
-const GUIDE_VERSION = 'v3';
+const GUIDE_VERSION = 'v4';
 const getGuideDomId = (id: string) => `guide-target-${id}`;
 const steps: GuideStep[] = [
   {
     route: 'MonthlyCalendar',
     targetId: 'monthly-add',
-    eyebrow: '1 / 6 · 월간',
+    eyebrow: '1 / 5 · 월간',
     title: '선택한 날짜에 일정을 추가해요',
     description: '달력에서 날짜를 고른 뒤 강조된 영역의 추가 버튼으로 시간 블록을 만들 수 있어요.'
   },
   {
     route: 'Home',
     targetId: 'today-add',
-    eyebrow: '2 / 6 · 오늘',
+    eyebrow: '2 / 5 · 오늘',
     title: '오늘 할 일을 빠르게 추가해요',
     description: '오른쪽 아래 + 버튼은 어디서든 바로 오늘 일정을 만드는 가장 빠른 방법이에요.'
   },
   {
-    route: 'WeeklySchedule',
-    targetId: 'weekly-days',
-    eyebrow: '3 / 6 · 주간',
-    title: '이번 주의 일정 밀도를 비교해요',
-    description: '요일별 시간 블록을 살펴보고 일이 한쪽에 몰렸다면 현실적으로 다시 배치해 보세요.'
-  },
-  {
     route: 'Productivity',
     targetId: 'productivity-actions',
-    eyebrow: '4 / 6 · 실행 도구',
+    eyebrow: '3 / 5 · 실행 도구',
     title: '집중·목표·루틴·회고를 관리해요',
     description: '강조된 바로 실행 영역에서 포커스 모드와 주요 실행 기능으로 이동할 수 있어요.'
   },
   {
     route: 'Productivity',
     targetId: 'productivity-ai',
-    eyebrow: '5 / 6 · AI 작업 분해',
+    eyebrow: '4 / 5 · AI 작업 분해',
     title: '막막한 목표를 실행 단계로 나눠요',
     description: '목표와 전체 사용 가능 시간을 입력하면 AI가 그 시간 안에 실행할 작은 단계로 나눠줘요.'
   },
   {
     route: 'Settings',
     targetId: 'settings-guide',
-    eyebrow: '6 / 6 · 다시 보기',
+    eyebrow: '5 / 5 · 다시 보기',
     title: '필요할 때 가이드를 다시 열어요',
     description: '설정의 사용 가이드 다시 보기 버튼을 누르면 이 안내를 언제든 처음부터 볼 수 있어요.'
   }

@@ -17,16 +17,16 @@ type FormState = {
   tagIds: number[];
 };
 
-function initialForm(selectedDate?: string): FormState {
+function initialForm(selectedDate?: string, draft?: { title?: string; description?: string; durationMinutes?: number }): FormState {
   const start = selectedDate ? new Date(`${selectedDate}T09:00:00`) : new Date();
   if (!selectedDate) {
     start.setHours(start.getHours() + 1, 0, 0, 0);
   }
   const end = new Date(start);
-  end.setHours(end.getHours() + 1);
+  end.setMinutes(end.getMinutes() + (draft?.durationMinutes ?? 60));
   return {
-    title: '',
-    description: '',
+    title: draft?.title ?? '',
+    description: draft?.description ?? '',
     startAt: toLocalDateTimeValue(start),
     endAt: toLocalDateTimeValue(end),
     color: scheduleColors[0],
@@ -36,16 +36,16 @@ function initialForm(selectedDate?: string): FormState {
   };
 }
 
-export function useScheduleEditor(scheduleId?: number, selectedDate?: string) {
-  const [form, setForm] = useState<FormState>(() => initialForm(selectedDate));
+export function useScheduleEditor(scheduleId?: number, selectedDate?: string, draft?: { title?: string; description?: string; durationMinutes?: number }) {
+  const [form, setForm] = useState<FormState>(() => initialForm(selectedDate, draft));
   const [isLoading, setIsLoading] = useState(Boolean(scheduleId));
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (scheduleId || !selectedDate) return;
-    setForm(initialForm(selectedDate));
-  }, [scheduleId, selectedDate]);
+    setForm(initialForm(selectedDate, draft));
+  }, [scheduleId, selectedDate, draft?.title, draft?.description, draft?.durationMinutes]);
 
   useEffect(() => {
     async function load() {

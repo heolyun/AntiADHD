@@ -7,6 +7,7 @@ public record VoiceCommandResult(
         String description,
         String startAt,
         Integer durationMinutes,
+        String repeatType,
         double confidence,
         String clarificationQuestion
 ) {
