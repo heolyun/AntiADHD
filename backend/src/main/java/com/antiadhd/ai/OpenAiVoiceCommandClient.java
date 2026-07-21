@@ -23,10 +23,16 @@ import org.springframework.web.client.RestClientException;
 public class OpenAiVoiceCommandClient {
     private static final String INSTRUCTIONS = """
             Convert the Korean voice transcript into one productivity action.
-            Use CREATE_SCHEDULE only when the user supplied enough date and time information.
-            Otherwise use CREATE_INBOX so the user can organize it later.
+            Use CREATE_SCHEDULE when the user supplied a date, a time, or both. A missing date or time is
+            an incomplete schedule draft, not an inbox item. Use CREATE_INBOX only when neither scheduling
+            information nor a scheduling expression was supplied, so the user can organize it later.
             Resolve relative Korean dates from the supplied current date/time. Never invent missing time information.
-            The current timezone is Asia/Seoul. Return startAt as local YYYY-MM-DDTHH:mm:ss without Z or an offset.
+            Return a resolved startDate as YYYY-MM-DD and a supplied startTime as HH:mm. Leave a missing value null
+            and ask for it in clarificationQuestion. Set startAt only when both values are known, using local
+            YYYY-MM-DDTHH:mm:ss without Z or an offset. The current timezone is Asia/Seoul.
+            Example: "이번 주 금요일 친구랑 와인바 가기" is CREATE_SCHEDULE with that Friday's resolved
+            startDate, null startTime, null startAt, and a Korean question asking for the start time.
+            Example: "언젠가 친구랑 와인바 알아보기" is CREATE_INBOX with null scheduling fields.
             If the user says every day or daily, set repeatType to DAILY. Otherwise set it to NONE.
             Return concise Korean text. Do not execute the action; only create a draft for user confirmation.
             """;
@@ -116,12 +122,14 @@ public class OpenAiVoiceCommandClient {
                         "title", Map.of("type", "string", "minLength", 1, "maxLength", 120),
                         "description", nullableString,
                         "startAt", Map.of("type", List.of("string", "null"), "description", "ISO-8601 local date-time or null"),
+                        "startDate", Map.of("type", List.of("string", "null"), "description", "Resolved local date as YYYY-MM-DD or null"),
+                        "startTime", Map.of("type", List.of("string", "null"), "description", "Supplied local time as HH:mm or null"),
                         "durationMinutes", Map.of("type", List.of("integer", "null"), "minimum", 5, "maximum", 480),
                         "repeatType", Map.of("type", "string", "enum", List.of("NONE", "DAILY")),
                         "confidence", Map.of("type", "number", "minimum", 0, "maximum", 1),
                         "clarificationQuestion", nullableString
                 ),
-                "required", List.of("intent", "title", "description", "startAt", "durationMinutes", "repeatType", "confidence", "clarificationQuestion")
+                "required", List.of("intent", "title", "description", "startAt", "startDate", "startTime", "durationMinutes", "repeatType", "confidence", "clarificationQuestion")
         );
         return Map.of("type", "json_schema", "name", "antiadhd_voice_command", "strict", true, "schema", schema);
     }

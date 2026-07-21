@@ -46,6 +46,8 @@ export type VoiceCommandResult = {
   title: string;
   description: string | null;
   startAt: string | null;
+  startDate: string | null;
+  startTime: string | null;
   durationMinutes: number | null;
   repeatType: 'NONE' | 'DAILY';
   confidence: number;

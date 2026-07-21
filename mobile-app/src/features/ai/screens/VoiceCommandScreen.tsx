@@ -52,6 +52,9 @@ export function VoiceCommandModal({
             const start = new Date(job.result.startAt);
             setStartDate(localDate(start));
             setStartTime(localTime(start));
+          } else {
+            setStartDate(job.result.startDate ?? '');
+            setStartTime(job.result.startTime ?? '');
           }
           setDurationMinutes(String(job.result.durationMinutes ?? 30));
           setRepeatType(job.result.repeatType ?? 'NONE');
@@ -120,7 +123,7 @@ export function VoiceCommandModal({
     }
     setIsSaving(true);
     try {
-      if (draft.intent === 'CREATE_SCHEDULE' && draft.startAt) {
+      if (draft.intent === 'CREATE_SCHEDULE') {
         const start = new Date(`${startDate}T${startTime}:00`);
         if (!/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !/^\d{2}:\d{2}$/.test(startTime) || Number.isNaN(start.getTime())) {
           throw new Error('날짜와 시간을 YYYY-MM-DD, HH:mm 형식으로 확인해 주세요.');

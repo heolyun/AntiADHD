@@ -41,6 +41,8 @@ public class VoiceCommandResponseParser {
                     parsed.path("title").asText(),
                     nullableText(parsed, "description"),
                     localDateTime(parsed, "startAt"),
+                    nullableText(parsed, "startDate"),
+                    nullableText(parsed, "startTime"),
                     parsed.path("durationMinutes").isNull() ? null : parsed.path("durationMinutes").asInt(),
                     parsed.path("repeatType").asText("NONE"),
                     parsed.path("confidence").asDouble(),

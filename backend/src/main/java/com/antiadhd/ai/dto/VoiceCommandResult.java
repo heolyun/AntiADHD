@@ -6,6 +6,8 @@ public record VoiceCommandResult(
         String title,
         String description,
         String startAt,
+        String startDate,
+        String startTime,
         Integer durationMinutes,
         String repeatType,
         double confidence,
