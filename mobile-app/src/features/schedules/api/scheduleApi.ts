@@ -1,5 +1,6 @@
 import { apiClient } from '../../../shared/api/client';
 import type { Schedule, ScheduleRequest } from '../dto/schedule.dto';
+import { cancelScheduleReminder, syncScheduleReminder } from '../../../shared/notifications/scheduleNotifications';
 
 export async function getTodaySchedules(date: string): Promise<Schedule[]> {
   const { data } = await apiClient.get<Schedule[]>('/schedules/today', { params: { date } });
@@ -23,6 +24,7 @@ export async function getSchedule(id: number): Promise<Schedule> {
 
 export async function createSchedule(payload: ScheduleRequest): Promise<Schedule> {
   const { data } = await apiClient.post<Schedule>('/schedules', payload);
+  await syncScheduleReminder(data);
   return data;
 }
 
@@ -38,20 +40,24 @@ export async function getOverdueSchedules(before: string): Promise<Schedule[]> {
 
 export async function createSchedules(payloads: ScheduleRequest[]): Promise<Schedule[]> {
   const { data } = await apiClient.post<Schedule[]>('/schedules/batch', { schedules: payloads });
+  await Promise.all(data.map(syncScheduleReminder));
   return data;
 }
 
 export async function updateSchedule(id: number, payload: ScheduleRequest): Promise<Schedule> {
   const { data } = await apiClient.put<Schedule>(`/schedules/${id}`, payload);
+  await syncScheduleReminder(data);
   return data;
 }
 
 export async function setScheduleCompleted(id: number, completed: boolean): Promise<Schedule> {
   const { data } = await apiClient.patch<Schedule>(`/schedules/${id}/complete`, { completed });
+  await syncScheduleReminder(data);
   return data;
 }
 
 export async function deleteSchedule(id: number): Promise<void> {
   await apiClient.delete(`/schedules/${id}`);
+  await cancelScheduleReminder(id);
 }
 

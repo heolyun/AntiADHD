@@ -6,6 +6,7 @@
     "orientation": "portrait",
     "scheme": "antiadhd",
     "userInterfaceStyle": "light",
+    "plugins": ["expo-notifications"],
     "splash": {
       "backgroundColor": "#18202f"
     },
