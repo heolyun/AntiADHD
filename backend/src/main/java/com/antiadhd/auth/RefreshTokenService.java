@@ -11,6 +11,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +22,7 @@ public class RefreshTokenService {
     private final Duration lifetime;
     private final Clock clock;
 
+    @Autowired
     public RefreshTokenService(
             RefreshTokenRepository repository,
             @Value("${app.jwt.refresh-expiration-ms:2592000000}") long expirationMs
