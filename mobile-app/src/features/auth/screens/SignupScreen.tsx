@@ -36,7 +36,7 @@ export function SignupScreen({ navigation }: Props) {
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
       <View style={styles.panel}>
-        <Text style={styles.logo}>AntiADHD</Text>
+        <Text style={styles.logo}>AtiADHD</Text>
         <Text style={styles.title}>계정 만들기</Text>
         <TextInput style={styles.input} placeholder="이름" value={name} onChangeText={setName} />
         <TextInput style={styles.input} placeholder="이메일" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} />

@@ -7,7 +7,7 @@ export function SplashScreen() {
       <View style={styles.mark}>
         <Text style={styles.markText}>A</Text>
       </View>
-      <Text style={styles.title}>AntiADHD</Text>
+      <Text style={styles.title}>AtiADHD</Text>
       <Text style={styles.subtitle}>타임블록 일정관리</Text>
     </View>
   );

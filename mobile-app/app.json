@@ -51,7 +51,7 @@
       }
     },
     "extra": {
-      "apiBaseUrl": "http://localhost:8080/api"
+      "apiBaseUrl": "http://172.30.1.39/api"
     }
   }
 }

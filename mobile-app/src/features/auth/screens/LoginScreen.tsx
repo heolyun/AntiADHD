@@ -29,7 +29,7 @@ export function LoginScreen({ navigation }: Props) {
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.container}>
       <View style={styles.panel}>
-        <Text style={styles.logo}>AntiADHD</Text>
+        <Text style={styles.logo}>AtiADHD</Text>
         <Text style={styles.title}>오늘의 시간을 정리하세요</Text>
         <TextInput style={styles.input} placeholder="이메일" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} />
         <TextInput style={styles.input} placeholder="비밀번호" secureTextEntry value={password} onChangeText={setPassword} />
