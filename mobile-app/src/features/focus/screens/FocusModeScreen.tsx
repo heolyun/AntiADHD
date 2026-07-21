@@ -12,10 +12,11 @@ import type { FocusModeProps } from '../../../types/navigation';
 
 const presets = [25, 50, 90];
 
-export function FocusModeScreen({ navigation }: FocusModeProps) {
-  const [title, setTitle] = useState('집중 작업');
-  const [plannedMinutes, setPlannedMinutes] = useState(25);
-  const [remainingSeconds, setRemainingSeconds] = useState(25 * 60);
+export function FocusModeScreen({ navigation, route }: FocusModeProps) {
+  const initialMinutes = Math.max(1, Math.min(480, route.params?.plannedMinutes ?? 25));
+  const [title, setTitle] = useState(route.params?.title ?? '집중 작업');
+  const [plannedMinutes, setPlannedMinutes] = useState(initialMinutes);
+  const [remainingSeconds, setRemainingSeconds] = useState(initialMinutes * 60);
   const [isRunning, setIsRunning] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [session, setSession] = useState<FocusSession | null>(null);

@@ -6,6 +6,7 @@ import { createTaskBreakdown, getAiJob } from '../../ai/api/aiApi';
 import type { AiJobResponse, TaskBreakdownStep } from '../../ai/dto/ai.dto';
 import { getFocusSessions } from '../../focus/api/focusApi';
 import { getGoals } from '../../goals/api/goalApi';
+import { createInboxItem } from '../../inbox/api/inboxApi';
 import { getDailyReviews } from '../../reviews/api/dailyReviewApi';
 import { GuideTarget, useOnboarding } from '../../onboarding/context/OnboardingContext';
 import { createSchedules, getOverdueSchedules, getSchedulesBetween } from '../../schedules/api/scheduleApi';
@@ -40,12 +41,6 @@ const initialSummary: ProductivitySummary = {
   dailyReviews: 0
 };
 
-function defaultScheduleStart() {
-  const date = new Date();
-  date.setMinutes(Math.ceil((date.getMinutes() + 1) / 30) * 30, 0, 0);
-  return toLocalDateTimeValue(date).slice(0, 16).replace('T', ' ');
-}
-
 export function ProductivityScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<ScheduleStackParamList>>();
   const { activeTargetId } = useOnboarding();
@@ -61,13 +56,11 @@ export function ProductivityScreen() {
   const [aiError, setAiError] = useState<string | null>(null);
   const [selectedStepOrders, setSelectedStepOrders] = useState<number[]>([]);
   const [draftSteps, setDraftSteps] = useState<TaskBreakdownStep[]>([]);
-  const [scheduleStart, setScheduleStart] = useState(defaultScheduleStart);
   const [isSavingSchedules, setIsSavingSchedules] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
-  const [scheduleConflicts, setScheduleConflicts] = useState<string[]>([]);
-  const [pendingSchedules, setPendingSchedules] = useState<ScheduleRequest[] | null>(null);
-  const [suggestedStart, setSuggestedStart] = useState<string | null>(null);
   const [showAiBreakdown, setShowAiBreakdown] = useState(false);
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  const [expandedStepOrder, setExpandedStepOrder] = useState<number | null>(null);
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
@@ -196,17 +189,11 @@ export function ProductivityScreen() {
     setSelectedStepOrders((current) => current.includes(order)
       ? current.filter((value) => value !== order)
       : [...current, order]);
-    setScheduleConflicts([]);
-    setPendingSchedules(null);
-    setSuggestedStart(null);
   }, []);
 
   const updateDraftStep = useCallback((order: number, changes: Partial<TaskBreakdownStep>) => {
     setDraftSteps((current) => current.map((step) => step.order === order ? { ...step, ...changes } : step));
     setSaveMessage(null);
-    setScheduleConflicts([]);
-    setPendingSchedules(null);
-    setSuggestedStart(null);
   }, []);
 
   const persistSchedules = useCallback(async (schedules: ScheduleRequest[]) => {
@@ -216,88 +203,93 @@ export function ProductivityScreen() {
     try {
       await createSchedules(schedules);
       setSaveMessage(`${schedules.length}개 단계를 일정으로 저장했습니다.`);
-      setScheduleConflicts([]);
-      setPendingSchedules(null);
-      setSuggestedStart(null);
     } catch (err) {
       setAiError(getErrorMessage(err));
+      throw err;
     } finally {
       setIsSavingSchedules(false);
     }
   }, []);
 
-  const saveSelectedSteps = useCallback(async () => {
-    if (!aiJob?.result) return;
-    const normalizedStart = scheduleStart.trim().replace(' ', 'T');
-    const start = new Date(normalizedStart.length === 16 ? `${normalizedStart}:00` : normalizedStart);
-    if (Number.isNaN(start.getTime())) {
-      setAiError('시작 날짜와 시간을 YYYY-MM-DD HH:mm 형식으로 입력해 주세요.');
-      return;
-    }
-    const selectedSteps = draftSteps.filter((step) => selectedStepOrders.includes(step.order));
-    if (selectedSteps.length === 0) {
-      setAiError('일정으로 저장할 단계를 하나 이상 선택해 주세요.');
-      return;
-    }
-    if (selectedSteps.some((step) => !step.title.trim())) {
-      setAiError('선택한 모든 단계에 제목을 입력해 주세요.');
-      return;
-    }
-    if (selectedSteps.some((step) => !Number.isInteger(step.estimatedMinutes) || step.estimatedMinutes < 1 || step.estimatedMinutes > 480)) {
-      setAiError('각 단계의 예상 시간은 1~480분 사이로 입력해 주세요.');
-      return;
-    }
+  const selectedSteps = draftSteps.filter((step) => selectedStepOrders.includes(step.order));
+  const selectedMinutes = selectedSteps.reduce((total, step) => total + step.estimatedMinutes, 0);
 
+  const buildSchedules = useCallback((steps: TaskBreakdownStep[], start: Date): ScheduleRequest[] => {
+    let cursor = new Date(start);
+    return steps.map((step) => {
+      const stepStart = new Date(cursor);
+      cursor = new Date(cursor.getTime() + step.estimatedMinutes * 60_000);
+      const color = step.energyLevel === 'HIGH' ? '#ef4444' : step.energyLevel === 'MEDIUM' ? '#f59e0b' : '#22c55e';
+      return {
+        title: step.title.trim(), description: step.description.trim(),
+        startAt: toLocalDateTimeValue(stepStart), endAt: toLocalDateTimeValue(cursor), color, repeatType: 'NONE' as const
+      };
+    });
+  }, []);
+
+  const validateSelectedSteps = useCallback(() => {
+    if (selectedSteps.length === 0) throw new Error('저장할 단계를 하나 이상 선택해 주세요.');
+    if (selectedSteps.some((step) => !step.title.trim())) throw new Error('선택한 모든 단계에 제목을 입력해 주세요.');
+    if (selectedSteps.some((step) => !Number.isInteger(step.estimatedMinutes) || step.estimatedMinutes < 1 || step.estimatedMinutes > 480)) {
+      throw new Error('각 단계의 예상 시간은 1~480분 사이여야 합니다.');
+    }
+    return selectedSteps;
+  }, [selectedSteps]);
+
+  const startFirstStepNow = useCallback(async () => {
+    try {
+      const first = validateSelectedSteps()[0];
+      const now = new Date();
+      await persistSchedules(buildSchedules([first], now));
+      navigation.navigate('FocusMode', { title: first.title.trim(), plannedMinutes: first.estimatedMinutes });
+    } catch (err) {
+      setAiError(getErrorMessage(err));
+    }
+  }, [buildSchedules, navigation, persistSchedules, validateSelectedSteps]);
+
+  const placeInNextFreeTime = useCallback(async () => {
     setIsSavingSchedules(true);
     setAiError(null);
-    setSaveMessage(null);
-    setScheduleConflicts([]);
-    setPendingSchedules(null);
-    setSuggestedStart(null);
     try {
-      let cursor = new Date(start);
-      const schedules = selectedSteps.map((step) => {
-        const stepStart = new Date(cursor);
-        cursor = new Date(cursor.getTime() + step.estimatedMinutes * 60_000);
-        const color = step.energyLevel === 'HIGH' ? '#ef4444' : step.energyLevel === 'MEDIUM' ? '#f59e0b' : '#22c55e';
-        return {
-          title: step.title.trim(),
-          description: step.description.trim(),
-          startAt: toLocalDateTimeValue(stepStart),
-          endAt: toLocalDateTimeValue(cursor),
-          color,
-          repeatType: 'NONE' as const
-        };
-      });
-      const proposedStart = new Date(schedules[0].startAt);
-      const proposedEnd = new Date(schedules[schedules.length - 1].endAt);
-      const searchEnd = new Date(proposedStart.getTime() + 7 * 24 * 60 * 60_000);
-      const existing = await getSchedulesBetween(schedules[0].startAt, toLocalDateTimeValue(searchEnd));
-      const conflicts = existing.filter((schedule) => (
-        new Date(schedule.startAt) < proposedEnd && new Date(schedule.endAt) > proposedStart
-      ));
-      if (conflicts.length > 0) {
-        const duration = proposedEnd.getTime() - proposedStart.getTime();
-        let candidate = new Date(proposedStart);
-        for (const schedule of [...existing].sort((left, right) => left.startAt.localeCompare(right.startAt))) {
-          const existingStart = new Date(schedule.startAt);
-          const existingEnd = new Date(schedule.endAt);
-          if (existingEnd <= candidate) continue;
-          if (existingStart.getTime() >= candidate.getTime() + duration) break;
-          candidate = existingEnd;
-        }
-        setScheduleConflicts(conflicts.map((schedule) => `${schedule.title} · ${schedule.startAt.slice(5, 16).replace('T', ' ')}~${schedule.endAt.slice(11, 16)}`));
-        setPendingSchedules(schedules);
-        setSuggestedStart(toLocalDateTimeValue(candidate).slice(0, 16).replace('T', ' '));
-        return;
+      const steps = validateSelectedSteps();
+      const start = new Date();
+      start.setMinutes(Math.ceil((start.getMinutes() + 1) / 15) * 15, 0, 0);
+      const durationMs = selectedMinutes * 60_000;
+      const searchEnd = new Date(start.getTime() + 7 * 24 * 60 * 60_000);
+      const existing = (await getSchedulesBetween(toLocalDateTimeValue(start), toLocalDateTimeValue(searchEnd)))
+        .sort((left, right) => left.startAt.localeCompare(right.startAt));
+      let candidate = new Date(start);
+      for (const schedule of existing) {
+        const existingStart = new Date(schedule.startAt);
+        const existingEnd = new Date(schedule.endAt);
+        if (existingEnd <= candidate) continue;
+        if (existingStart.getTime() >= candidate.getTime() + durationMs) break;
+        candidate = existingEnd;
       }
-      await persistSchedules(schedules);
+      await persistSchedules(buildSchedules(steps, candidate));
     } catch (err) {
       setAiError(getErrorMessage(err));
     } finally {
       setIsSavingSchedules(false);
     }
-  }, [aiJob?.result, draftSteps, persistSchedules, scheduleStart, selectedStepOrders]);
+  }, [buildSchedules, persistSchedules, selectedMinutes, validateSelectedSteps]);
+
+  const saveForLater = useCallback(async () => {
+    setIsSavingSchedules(true);
+    setAiError(null);
+    try {
+      const steps = validateSelectedSteps();
+      await Promise.all(steps.map((step) => createInboxItem({
+        title: step.title.trim(), description: step.description.trim(), estimatedMinutes: step.estimatedMinutes,
+        priority: step.energyLevel === 'HIGH' ? 'HIGH' : step.energyLevel === 'LOW' ? 'LOW' : 'MEDIUM', status: 'INBOX'
+      })));
+      setSaveMessage(`${steps.length}개 단계를 나중에 할 일로 저장했습니다.`);
+    } catch (err) {
+      setAiError(getErrorMessage(err));
+    } finally {
+      setIsSavingSchedules(false);
+    }
+  }, [validateSelectedSteps]);
 
   return (
     <Screen>
@@ -332,144 +324,86 @@ export function ProductivityScreen() {
         <GuideTarget id="productivity-ai" style={styles.card}>
           <View style={styles.sectionHeader}>
             <View style={styles.sectionHeaderText}>
-              <Text style={styles.cardTitle}>AI 작업 분해</Text>
-              <Text style={styles.description}>필요할 때만 열어 목표를 실행 단계로 바꿔 보세요.</Text>
+              <Text style={styles.cardTitle}>시작 계획 만들기</Text>
+              <Text style={styles.description}>막막한 일을 지금 할 수 있는 첫 행동으로 바꿔요.</Text>
             </View>
             <Button title={showAiBreakdown ? '접기' : '열기'} variant="secondary" onPress={() => setShowAiBreakdown((current) => !current)} />
           </View>
           {showAiBreakdown ? <>
-          <Text style={styles.description}>막막한 목표를 지금 시작할 수 있는 작은 단계로 나눕니다.</Text>
-          <Text style={styles.inputLabel}>분해할 목표</Text>
+          <Text style={styles.inputLabel}>무엇이 막막한가요?</Text>
           <TextInput
             value={goal}
             onChangeText={setGoal}
-            placeholder="예: Kubernetes 포트폴리오 발표 준비하기"
+            placeholder="예: 다음 주 포트폴리오 발표를 준비해야 해"
             placeholderTextColor={colors.muted}
             multiline
             maxLength={1000}
             style={[styles.input, styles.goalInput]}
           />
-          <Text style={styles.inputLabel}>마감일(선택)</Text>
-          <Text style={styles.inputHelp}>마감이 있다면 AI가 남은 시간을 고려해 단계를 구성합니다.</Text>
-          <TextInput
-            value={deadline}
-            onChangeText={setDeadline}
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor={colors.muted}
-            maxLength={10}
-            style={styles.input}
-          />
-          <Text style={styles.inputLabel}>사용 가능한 총 시간</Text>
-          <Text style={styles.inputHelp}>AI가 이 시간 안에 끝낼 수 있도록 전체 작업을 나눠요. 단위는 분입니다.</Text>
-          <TextInput
-            value={availableMinutes}
-            onChangeText={setAvailableMinutes}
-            placeholder="예: 60분"
-            placeholderTextColor={colors.muted}
-            keyboardType="number-pad"
-            maxLength={3}
-            style={styles.input}
-          />
+          <Text style={styles.inputLabel}>지금 얼마나 할 수 있나요?</Text>
+          <View style={styles.timeChips}>
+            {[15, 30, 60, 90].map((minutes) => (
+              <Pressable key={minutes} onPress={() => setAvailableMinutes(String(minutes))}
+                style={[styles.timeChip, availableMinutes === String(minutes) && styles.activeTimeChip]}>
+                <Text style={[styles.timeChipText, availableMinutes === String(minutes) && styles.activeTimeChipText]}>{minutes}분</Text>
+              </Pressable>
+            ))}
+          </View>
+          <Pressable onPress={() => setShowAdvancedOptions((current) => !current)} style={styles.advancedToggle}>
+            <Text style={styles.advancedToggleText}>{showAdvancedOptions ? '− 세부 조건 닫기' : '+ 세부 조건 추가'}</Text>
+          </Pressable>
+          {showAdvancedOptions ? <View style={styles.advancedBox}>
+            <Text style={styles.inputLabel}>직접 시간 입력(분)</Text>
+            <TextInput value={availableMinutes} onChangeText={(value) => setAvailableMinutes(value.replace(/\D/g, ''))}
+              keyboardType="number-pad" maxLength={3} style={styles.input} />
+            <Text style={styles.inputLabel}>마감일(선택)</Text>
+            <TextInput value={deadline} onChangeText={setDeadline} placeholder="YYYY-MM-DD"
+              placeholderTextColor={colors.muted} maxLength={10} style={styles.input} />
+          </View> : null}
           <Button
-            title="AI로 단계 만들기"
+            title="시작 계획 만들기"
             onPress={generateBreakdown}
             loading={isGenerating}
             disabled={!goal.trim()}
           />
           {aiJob && aiJob.status !== 'COMPLETED' ? (
-            <Text style={styles.status}>상태: {aiJob.status} · 시도 {aiJob.attemptCount}회</Text>
+            <View style={styles.generatingBox}><ActivityIndicator color={colors.primary} /><Text style={styles.status}>할 일을 작고 구체적으로 나누고 있어요...</Text></View>
           ) : null}
           {aiError ? <Text style={styles.error}>{aiError}</Text> : null}
           {aiJob?.result ? (
             <View style={styles.result}>
-              <Text style={styles.resultSummary}>{aiJob.result.summary}</Text>
-              <Text style={styles.status}>
-                선택한 단계 총 {draftSteps
-                  .filter((step) => selectedStepOrders.includes(step.order))
-                  .reduce((total, step) => total + step.estimatedMinutes, 0)}분
-              </Text>
-              {draftSteps.map((step) => (
-                <View key={step.order} style={[styles.step, selectedStepOrders.includes(step.order) && styles.selectedStep]}>
-                  <Pressable onPress={() => toggleStep(step.order)} style={styles.selectionButton}>
-                    <Text style={styles.selection}>{selectedStepOrders.includes(step.order) ? '✓ 일정에 추가' : '○ 제외됨'}</Text>
+              <View style={styles.resultHeader}>
+                <View style={styles.resultHeaderText}><Text style={styles.resultTitle}>{selectedMinutes}분 시작 계획</Text><Text style={styles.status}>{selectedStepOrders.length}개 단계 선택됨</Text></View>
+                <Pressable onPress={generateBreakdown}><Text style={styles.regenerate}>다시 만들기</Text></Pressable>
+              </View>
+              {selectedSteps[0] ? <View style={styles.firstStepCard}>
+                <Text style={styles.firstStepEyebrow}>지금 시작할 첫 단계</Text>
+                <Text style={styles.firstStepTitle}>{selectedSteps[0].title}</Text>
+                <Text style={styles.firstStepDescription}>{selectedSteps[0].description}</Text>
+                <Text style={styles.firstStepMinutes}>{selectedSteps[0].estimatedMinutes}분이면 시작할 수 있어요</Text>
+                <Button title="바로 집중 시작" onPress={startFirstStepNow} loading={isSavingSchedules} />
+              </View> : null}
+              <Text style={styles.listTitle}>전체 계획 · 필요한 단계만 선택</Text>
+              {draftSteps.map((step) => {
+                const selected = selectedStepOrders.includes(step.order);
+                const expanded = expandedStepOrder === step.order;
+                return <View key={step.order} style={[styles.step, selected && styles.selectedStep]}>
+                  <Pressable onPress={() => toggleStep(step.order)} style={styles.stepRow}>
+                    <Text style={[styles.check, !selected && styles.checkOff]}>{selected ? '✓' : '○'}</Text>
+                    <View style={styles.stepMain}><Text style={[styles.stepName, !selected && styles.stepNameOff]}>{step.title}</Text><Text style={styles.stepMeta}>{step.estimatedMinutes}분</Text></View>
+                    <Pressable hitSlop={10} onPress={() => setExpandedStepOrder(expanded ? null : step.order)}><Text style={styles.editLink}>{expanded ? '닫기' : '수정'}</Text></Pressable>
                   </Pressable>
-                  <Text style={styles.stepTitle}>{step.order}단계</Text>
-                  <Text style={styles.inputLabel}>제목</Text>
-                  <TextInput
-                    value={step.title}
-                    onChangeText={(title) => updateDraftStep(step.order, { title })}
-                    maxLength={120}
-                    placeholderTextColor={colors.muted}
-                    style={styles.input}
-                  />
-                  <Text style={styles.inputLabel}>설명</Text>
-                  <TextInput
-                    value={step.description}
-                    onChangeText={(description) => updateDraftStep(step.order, { description })}
-                    multiline
-                    maxLength={1000}
-                    placeholderTextColor={colors.muted}
-                    style={[styles.input, styles.stepDescriptionInput]}
-                  />
-                  <Text style={styles.inputLabel}>예상 시간(분)</Text>
-                  <TextInput
-                    value={String(step.estimatedMinutes || '')}
-                    onChangeText={(value) => updateDraftStep(step.order, { estimatedMinutes: Number(value.replace(/\D/g, '')) })}
-                    keyboardType="number-pad"
-                    maxLength={3}
-                    placeholder="예: 20"
-                    placeholderTextColor={colors.muted}
-                    style={styles.input}
-                  />
-                  <Text style={styles.status}>에너지 {step.energyLevel}</Text>
-                </View>
-              ))}
-              <Text style={styles.inputLabel}>첫 단계 시작 날짜·시간</Text>
-              <Text style={styles.inputHelp}>선택한 단계는 입력한 시간부터 순서대로 이어서 배치됩니다.</Text>
-              <TextInput
-                value={scheduleStart}
-                onChangeText={(value) => {
-                  setScheduleStart(value);
-                  setScheduleConflicts([]);
-                  setPendingSchedules(null);
-                  setSuggestedStart(null);
-                }}
-                placeholder="YYYY-MM-DD HH:mm"
-                placeholderTextColor={colors.muted}
-                style={styles.input}
-              />
-              <Button
-                title={`선택한 ${selectedStepOrders.length}개를 일정으로 저장`}
-                onPress={saveSelectedSteps}
-                loading={isSavingSchedules}
-                disabled={selectedStepOrders.length === 0}
-              />
-              {scheduleConflicts.length > 0 && pendingSchedules ? (
-                <View style={styles.conflictBox}>
-                  <Text style={styles.conflictTitle}>기존 일정과 시간이 겹칩니다</Text>
-                  {scheduleConflicts.map((conflict) => (
-                    <Text key={conflict} style={styles.conflictText}>• {conflict}</Text>
-                  ))}
-                  <Text style={styles.inputHelp}>시간을 수정하거나, 겹침을 확인한 뒤 그대로 저장할 수 있습니다.</Text>
-                  {suggestedStart ? (
-                    <Button
-                      title={`추천 빈 시간 적용 · ${suggestedStart}`}
-                      onPress={() => {
-                        setScheduleStart(suggestedStart);
-                        setScheduleConflicts([]);
-                        setPendingSchedules(null);
-                        setSuggestedStart(null);
-                      }}
-                    />
-                  ) : null}
-                  <Button
-                    title="충돌을 확인했고 그대로 저장"
-                    variant="secondary"
-                    onPress={() => persistSchedules(pendingSchedules)}
-                    loading={isSavingSchedules}
-                  />
-                </View>
-              ) : null}
+                  {expanded ? <View style={styles.stepEditor}>
+                    <TextInput value={step.title} onChangeText={(title) => updateDraftStep(step.order, { title })} maxLength={120} style={styles.input} />
+                    <TextInput value={step.description} onChangeText={(description) => updateDraftStep(step.order, { description })} multiline maxLength={1000} style={[styles.input, styles.stepDescriptionInput]} />
+                    <View style={styles.minuteEditor}><TextInput value={String(step.estimatedMinutes || '')} onChangeText={(value) => updateDraftStep(step.order, { estimatedMinutes: Number(value.replace(/\D/g, '')) })} keyboardType="number-pad" maxLength={3} style={[styles.input, styles.minuteInput]} /><Text style={styles.status}>분</Text></View>
+                  </View> : null}
+                </View>;
+              })}
+              <View style={styles.saveActions}>
+                <Button title="가장 빠른 빈 시간에 자동 배치" onPress={placeInNextFreeTime} loading={isSavingSchedules} disabled={selectedSteps.length === 0} />
+                <Button title="나중에 할 일로 저장" variant="secondary" onPress={saveForLater} loading={isSavingSchedules} disabled={selectedSteps.length === 0} />
+              </View>
               {saveMessage ? <Text style={styles.success}>{saveMessage}</Text> : null}
             </View>
           ) : null}
@@ -558,18 +492,42 @@ const styles = StyleSheet.create({
     color: colors.text
   },
   goalInput: { minHeight: 88, textAlignVertical: 'top' },
+  timeChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  timeChip: { borderWidth: 1, borderColor: colors.border, borderRadius: 999, paddingHorizontal: 15, paddingVertical: 10, backgroundColor: colors.surface },
+  activeTimeChip: { borderColor: colors.primary, backgroundColor: colors.primary },
+  timeChipText: { color: colors.muted, fontWeight: '900' },
+  activeTimeChipText: { color: '#fff' },
+  advancedToggle: { alignSelf: 'flex-start', paddingVertical: 6 },
+  advancedToggleText: { color: colors.primary, fontWeight: '800', fontSize: 13 },
+  advancedBox: { borderRadius: 10, padding: 12, backgroundColor: colors.background, gap: 8 },
+  generatingBox: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 14 },
   status: { color: colors.muted, fontSize: 12, fontWeight: '700' },
   result: { gap: 10, marginTop: 4 },
-  resultSummary: { color: colors.text, lineHeight: 22, fontWeight: '800' },
-  step: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 12, gap: 4 },
+  resultHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 2 },
+  resultHeaderText: { flex: 1, gap: 3 },
+  resultTitle: { color: colors.text, fontSize: 19, fontWeight: '900' },
+  regenerate: { color: colors.primary, fontSize: 12, fontWeight: '900', paddingVertical: 8 },
+  firstStepCard: { borderRadius: 14, padding: 16, gap: 8, backgroundColor: '#eff6ff', borderWidth: 1, borderColor: '#93c5fd' },
+  firstStepEyebrow: { color: colors.primary, fontSize: 12, fontWeight: '900' },
+  firstStepTitle: { color: colors.text, fontSize: 19, fontWeight: '900' },
+  firstStepDescription: { color: colors.muted, lineHeight: 20 },
+  firstStepMinutes: { color: colors.primary, fontSize: 13, fontWeight: '800', marginBottom: 2 },
+  listTitle: { color: colors.text, fontSize: 15, fontWeight: '900', marginTop: 6 },
+  step: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, overflow: 'hidden' },
   selectedStep: { borderColor: colors.primary, backgroundColor: '#eff6ff' },
-  selectionButton: { alignSelf: 'flex-start', paddingVertical: 4 },
-  selection: { color: colors.primary, fontSize: 12, fontWeight: '900' },
+  stepRow: { minHeight: 58, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 9 },
+  check: { width: 24, color: colors.primary, fontSize: 20, fontWeight: '900' },
+  checkOff: { color: colors.muted },
+  stepMain: { flex: 1, gap: 3 },
+  stepName: { color: colors.text, fontWeight: '800' },
+  stepNameOff: { color: colors.muted, textDecorationLine: 'line-through' },
+  stepMeta: { color: colors.muted, fontSize: 12, fontWeight: '700' },
+  editLink: { color: colors.primary, fontSize: 12, fontWeight: '900', padding: 6 },
+  stepEditor: { borderTopWidth: 1, borderTopColor: colors.border, padding: 10, gap: 8, backgroundColor: colors.surface },
+  minuteEditor: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  minuteInput: { width: 90 },
+  saveActions: { gap: 8, marginTop: 6 },
   stepDescriptionInput: { minHeight: 72, textAlignVertical: 'top' },
-  stepTitle: { color: colors.text, fontWeight: '900' },
   success: { color: '#15803d', fontWeight: '800' },
-  conflictBox: { borderWidth: 1, borderColor: colors.warning, borderRadius: 10, padding: 12, gap: 8, backgroundColor: '#fffbeb' },
-  conflictTitle: { color: '#92400e', fontWeight: '900' },
-  conflictText: { color: '#92400e', fontSize: 13 },
   error: { color: colors.danger, marginBottom: 12, fontWeight: '700' }
 });

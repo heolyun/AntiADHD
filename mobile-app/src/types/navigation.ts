@@ -17,7 +17,7 @@ export type ScheduleStackParamList = {
   MainTabs: NavigatorScreenParams<RootTabParamList> | undefined;
   ScheduleDetail: { scheduleId: number };
   ScheduleEdit: { scheduleId?: number; selectedDate?: string; draftTitle?: string; draftDescription?: string; durationMinutes?: number; inboxItemId?: number } | undefined;
-  FocusMode: undefined;
+  FocusMode: { title?: string; plannedMinutes?: number } | undefined;
   CategoryTagManager: undefined;
   RoutineManager: undefined;
   GoalManager: undefined;
