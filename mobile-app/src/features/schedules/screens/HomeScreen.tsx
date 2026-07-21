@@ -22,7 +22,12 @@ export function HomeScreen() {
       <Header
         eyebrow="오늘 일정"
         title={today.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' })}
-        right={<Button title="추가" onPress={() => navigation.navigate('ScheduleEdit')} />}
+        right={(
+          <View style={styles.headerActions}>
+            <Button title="Inbox" variant="secondary" onPress={() => navigation.navigate('Inbox')} />
+            <Button title="일정 추가" onPress={() => navigation.navigate('ScheduleEdit')} />
+          </View>
+        )}
       />
       <View style={styles.summary}>
         <Text style={styles.summaryText}>전체 {schedules.length}</Text>
@@ -45,6 +50,7 @@ export function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+  headerActions: { flexDirection: 'row', gap: 8 },
   summary: { flexDirection: 'row', gap: 10, marginBottom: 14 },
   summaryText: {
     color: colors.muted,

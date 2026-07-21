@@ -23,6 +23,7 @@ export type ScheduleStackParamList = {
   RoutineManager: undefined;
   GoalManager: undefined;
   DailyReview: undefined;
+  Inbox: undefined;
 };
 
 export type ScheduleDetailProps = NativeStackScreenProps<ScheduleStackParamList, 'ScheduleDetail'>;
@@ -32,3 +33,4 @@ export type CategoryTagManagerProps = NativeStackScreenProps<ScheduleStackParamL
 export type RoutineManagerProps = NativeStackScreenProps<ScheduleStackParamList, 'RoutineManager'>;
 export type GoalManagerProps = NativeStackScreenProps<ScheduleStackParamList, 'GoalManager'>;
 export type DailyReviewProps = NativeStackScreenProps<ScheduleStackParamList, 'DailyReview'>;
+export type InboxProps = NativeStackScreenProps<ScheduleStackParamList, 'Inbox'>;

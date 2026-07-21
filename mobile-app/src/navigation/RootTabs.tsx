@@ -17,6 +17,7 @@ import { RoutineManagerScreen } from '../features/routines/screens/RoutineManage
 import type { RootTabParamList, ScheduleStackParamList } from '../types/navigation';
 import { useAuthContext } from '../features/auth/context/AuthContext';
 import { OnboardingProvider } from '../features/onboarding/context/OnboardingContext';
+import { InboxScreen } from '../features/inbox/screens/InboxScreen';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 const Stack = createNativeStackNavigator<ScheduleStackParamList>();
@@ -33,7 +34,8 @@ const labels = {
   categoryTagManager: '\uCE74\uD14C\uACE0\uB9AC\uC640 \uD0DC\uADF8',
   routineManager: '\uB8E8\uD2F4',
   goalManager: '\uBAA9\uD45C',
-  dailyReview: '\uD558\uB8E8 \uD68C\uACE0'
+  dailyReview: '\uD558\uB8E8 \uD68C\uACE0',
+  inbox: 'Inbox'
 };
 
 function MainTabs() {
@@ -97,6 +99,7 @@ export function RootTabs({
         <Stack.Screen name="RoutineManager" component={RoutineManagerScreen} options={{ title: labels.routineManager }} />
         <Stack.Screen name="GoalManager" component={GoalManagerScreen} options={{ title: labels.goalManager }} />
         <Stack.Screen name="DailyReview" component={DailyReviewScreen} options={{ title: labels.dailyReview }} />
+        <Stack.Screen name="Inbox" component={InboxScreen} options={{ title: labels.inbox }} />
       </Stack.Navigator>
     </OnboardingProvider>
   );
