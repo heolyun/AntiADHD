@@ -1,5 +1,6 @@
 import { apiClient } from '../../../shared/api/client';
 import type { Schedule, ScheduleRequest } from '../dto/schedule.dto';
+import type { Holiday } from '../dto/holiday.dto';
 import { cancelScheduleReminder, syncScheduleReminder } from '../../../shared/notifications/scheduleNotifications';
 
 export async function getTodaySchedules(date: string): Promise<Schedule[]> {
@@ -25,6 +26,11 @@ export async function getSchedule(id: number): Promise<Schedule> {
 export async function createSchedule(payload: ScheduleRequest): Promise<Schedule> {
   const { data } = await apiClient.post<Schedule>('/schedules', payload);
   await syncScheduleReminder(data);
+  return data;
+}
+
+export async function getKoreanHolidays(year: number): Promise<Holiday[]> {
+  const { data } = await apiClient.get<Holiday[]>('/calendar/holidays', { params: { year } });
   return data;
 }
 

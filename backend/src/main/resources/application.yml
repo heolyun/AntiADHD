@@ -29,6 +29,8 @@ spring:
     baseline-version: 1
 
 app:
+  calendar:
+    holiday-api-base-url: ${HOLIDAY_API_BASE_URL:https://date.nager.at}
   jwt:
     secret: ${JWT_SECRET}
     expiration-ms: ${JWT_EXPIRATION_MS:86400000}

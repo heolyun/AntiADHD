@@ -11,6 +11,8 @@ import type { ScheduleStackParamList } from '../../../types/navigation';
 import { ScheduleCard } from '../components/ScheduleCard';
 import { useSchedules } from '../hooks/useSchedules';
 import { useGuideTarget, useOnboarding } from '../../onboarding/context/OnboardingContext';
+import { getKoreanHolidays } from '../api/scheduleApi';
+import type { Holiday } from '../dto/holiday.dto';
 
 type Navigation = NativeStackNavigationProp<ScheduleStackParamList>;
 
@@ -24,10 +26,23 @@ export function MonthlyCalendarScreen() {
   const anchor = new Date();
   const todayKey = toDateKey(new Date());
   const [selectedDate, setSelectedDate] = useState(todayKey);
+  const [holidays, setHolidays] = useState<Holiday[]>([]);
   const { schedules, isLoading, error, toggleComplete } = useSchedules('month', anchor);
   const schedulesByDate = useMemo(() => groupByDate(schedules), [schedules]);
   const title = anchor.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' });
   const selectedSchedules = schedulesByDate[selectedDate] ?? [];
+  const holidaysByDate = useMemo(
+    () => Object.fromEntries(holidays.map((holiday) => [holiday.date, holiday])),
+    [holidays]
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    getKoreanHolidays(anchor.getFullYear())
+      .then((items) => { if (!cancelled) setHolidays(items); })
+      .catch(() => { if (!cancelled) setHolidays([]); });
+    return () => { cancelled = true; };
+  }, [anchor.getFullYear()]);
 
   const calendarDays = useMemo(() => {
     const firstDay = new Date(anchor.getFullYear(), anchor.getMonth(), 1).getDay();
@@ -75,6 +90,8 @@ export function MonthlyCalendarScreen() {
               const items = schedulesByDate[key] ?? [];
               const isToday = key === todayKey;
               const isSelected = key === selectedDate;
+              const holiday = holidaysByDate[key];
+              const dayOfWeek = day.getDay();
 
               return (
                 <Pressable
@@ -88,11 +105,17 @@ export function MonthlyCalendarScreen() {
                   onPress={() => setSelectedDate(key)}
                 >
                   <View style={styles.dayHeader}>
-                    <Text style={[styles.dayNumber, isToday && styles.todayNumber]}>{day.getDate()}</Text>
+                    <Text style={[
+                      styles.dayNumber,
+                      (dayOfWeek === 0 || holiday) && styles.sundayNumber,
+                      dayOfWeek === 6 && !holiday && styles.saturdayNumber,
+                      isToday && styles.todayNumber
+                    ]}>{day.getDate()}</Text>
                     {items.length > 0 ? <Text style={styles.count}>{items.length}</Text> : null}
                   </View>
 
                   <View style={styles.scheduleArea}>
+                    {holiday ? <Text numberOfLines={1} style={styles.holidayName}>{holiday.name}</Text> : null}
                     {isLoading ? <View style={styles.loadingLine} /> : null}
                     {!isLoading && items.slice(0, 2).map((item) => (
                       <View key={item.id} style={styles.scheduleChip}>
@@ -203,6 +226,8 @@ const styles = StyleSheet.create({
     fontWeight: '900'
   },
   todayNumber: { color: '#fff', backgroundColor: colors.primary },
+  sundayNumber: { color: colors.danger },
+  saturdayNumber: { color: colors.primary },
   count: {
     minWidth: 17,
     height: 17,
@@ -216,6 +241,7 @@ const styles = StyleSheet.create({
     fontWeight: '900'
   },
   scheduleArea: { marginTop: 6, gap: 4 },
+  holidayName: { color: colors.danger, fontSize: 9, fontWeight: '900' },
   scheduleChip: {
     minHeight: 18,
     flexDirection: 'row',
