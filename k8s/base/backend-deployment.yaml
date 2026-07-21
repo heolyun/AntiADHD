@@ -7,11 +7,11 @@ metadata:
     app.kubernetes.io/part-of: antiadhd
 spec:
   replicas: 2
+  # The on-prem cluster currently has one node and one replica. Recreate avoids
+  # starting two Spring JVMs at once and exhausting CPU during a rollout.
   strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxUnavailable: 0
-      maxSurge: 1
+    type: Recreate
+    rollingUpdate: null
   selector:
     matchLabels:
       app.kubernetes.io/name: antiadhd-backend
