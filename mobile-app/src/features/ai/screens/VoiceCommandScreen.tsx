@@ -34,6 +34,8 @@ export function VoiceCommandModal({
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const polling = useRef(false);
+  const recordingReady = useRef(false);
+  const finishing = useRef(false);
   const isBusy = phase === 'UPLOADING' || phase === 'PROCESSING';
 
   useEffect(() => {
@@ -77,23 +79,30 @@ export function VoiceCommandModal({
   }, [visible, jobId, draft]);
 
   const reset = () => {
+    recordingReady.current = false;
+    finishing.current = false;
     setPhase('READY'); setJobId(null); setDraft(null); setTitle(''); setStartDate(''); setStartTime(''); setDurationMinutes('30'); setRepeatType('NONE'); setError(null);
   };
 
   const close = async () => {
     if (isBusy) return;
-    if (recorderState.isRecording) await recorder.stop();
+    if (recordingReady.current) {
+      recordingReady.current = false;
+      try { await recorder.stop(); } catch { /* Android may already have released it. */ }
+    }
     reset();
     onClose();
   };
 
   const startRecording = async () => {
+    if (recordingReady.current || finishing.current) return;
     try {
       reset();
       const permission = await AudioModule.requestRecordingPermissionsAsync();
       if (!permission.granted) throw new Error('마이크 권한을 허용해 주세요.');
       await recorder.prepareToRecordAsync();
       recorder.record();
+      recordingReady.current = true;
       setPhase('RECORDING');
     } catch (err) {
       setError(getErrorMessage(err));
@@ -101,16 +110,29 @@ export function VoiceCommandModal({
   };
 
   const finishRecording = async () => {
+    if (!recordingReady.current || finishing.current) return;
+    if (recorderState.durationMillis < 700) {
+      setError('1초 이상 말한 뒤 녹음을 완료해 주세요.');
+      return;
+    }
+    finishing.current = true;
     try {
       setPhase('UPLOADING');
       await recorder.stop();
+      recordingReady.current = false;
       if (!recorder.uri) throw new Error('녹음 파일을 만들지 못했습니다.');
       const accepted = await createVoiceCommand(recorder.uri);
       setJobId(accepted.jobId);
       setPhase('PROCESSING');
     } catch (err) {
-      setError(getErrorMessage(err));
+      recordingReady.current = false;
+      const message = getErrorMessage(err);
+      setError(message.includes('IllegalStateException')
+        ? '녹음 상태가 초기화되었습니다. 통화 중이거나 다른 앱이 마이크를 사용 중인지 확인한 뒤 다시 시도해 주세요.'
+        : message);
       setPhase('READY');
+    } finally {
+      finishing.current = false;
     }
   };
 

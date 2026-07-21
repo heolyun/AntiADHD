@@ -2,7 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode, RefObject } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
-import { Modal, Platform, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Modal, Platform, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../../../shared/components/Button';
 import { colors } from '../../../shared/constants/theme';
 import type { RootTabParamList } from '../../../types/navigation';
@@ -76,11 +77,13 @@ export function OnboardingProvider({
   children: ReactNode;
 }) {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const targets = useRef(new Map<string, RefObject<View | null>>());
   const requestedTargetId = useRef<string | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
   const [targetRect, setTargetRect] = useState<TargetRect | null>(null);
+  const [cardHeight, setCardHeight] = useState(280);
   const storageKey = `antiadhd.onboarding.${GUIDE_VERSION}.${userId}`;
   const activeTargetId = isVisible ? steps[stepIndex].targetId : null;
 
@@ -169,11 +172,17 @@ export function OnboardingProvider({
     };
   })() : null;
   const cardBelowTarget = Boolean(spotlight && spotlight.y + spotlight.height < windowHeight * 0.48);
-  const cardPosition = spotlight
+  const safeTop = insets.top + 12;
+  const safeBottom = insets.bottom + 12;
+  const maxCardHeight = Math.max(220, windowHeight - safeTop - safeBottom);
+  const desiredCardTop = spotlight
     ? cardBelowTarget
-      ? { top: Math.max(18, Math.min(spotlight.y + spotlight.height + 28, windowHeight - 300)) }
-      : { bottom: Math.max(18, Math.min(windowHeight - spotlight.y + 28, windowHeight - 120)) }
-    : { top: Math.max(30, windowHeight * 0.24) };
+      ? spotlight.y + spotlight.height + 28
+      : spotlight.y - cardHeight - 28
+    : windowHeight * 0.24;
+  const cardPosition = {
+    top: Math.max(safeTop, Math.min(desiredCardTop, windowHeight - safeBottom - Math.min(cardHeight, maxCardHeight)))
+  };
 
   return (
     <OnboardingContext.Provider value={value}>
@@ -197,11 +206,16 @@ export function OnboardingProvider({
             </>
           ) : <View style={[styles.dim, StyleSheet.absoluteFillObject]} />}
 
-          <View style={[styles.card, cardPosition]}>
+          <View
+            style={[styles.card, cardPosition, { maxHeight: maxCardHeight }]}
+            onLayout={(event) => setCardHeight(event.nativeEvent.layout.height)}
+          >
+            <ScrollView bounces={false} showsVerticalScrollIndicator={false} contentContainerStyle={styles.cardContent}>
             <Text style={styles.eyebrow}>{step.eyebrow}</Text>
             <Text style={styles.title}>{step.title}</Text>
             <Text style={styles.description}>{step.description}</Text>
             {!spotlight ? <Text style={styles.locating}>안내할 기능의 위치를 찾는 중...</Text> : null}
+            </ScrollView>
             <View style={styles.actions}>
               <View style={styles.actionButton}>
                 <Button
@@ -283,6 +297,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     elevation: 9
   },
+  cardContent: { gap: 10 },
   eyebrow: { color: colors.primary, fontSize: 13, fontWeight: '900' },
   title: { color: colors.text, fontSize: 21, lineHeight: 28, fontWeight: '900' },
   description: { color: colors.muted, fontSize: 15, lineHeight: 22 },
