@@ -1,5 +1,6 @@
 import { createNavigationContainerRef, NavigationContainer, type LinkingOptions } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider, useAuthContext } from './src/features/auth/context/AuthContext';
 import { SplashScreen } from './src/features/auth/screens/SplashScreen';
 import { AuthStack } from './src/navigation/AuthStack';
@@ -43,9 +44,11 @@ function AppNavigator() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <StatusBar style="dark" />
-      <AppNavigator />
-    </AuthProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <StatusBar style="dark" />
+        <AppNavigator />
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }
