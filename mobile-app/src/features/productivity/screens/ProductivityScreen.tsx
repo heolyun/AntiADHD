@@ -11,7 +11,8 @@ import { getDailyReviews } from '../../reviews/api/dailyReviewApi';
 import { getRoutines } from '../../routines/api/routineApi';
 import { getTags } from '../../tags/api/tagApi';
 import { GuideTarget, useOnboarding } from '../../onboarding/context/OnboardingContext';
-import { createSchedules } from '../../schedules/api/scheduleApi';
+import { createSchedules, getSchedulesBetween } from '../../schedules/api/scheduleApi';
+import type { ScheduleRequest } from '../../schedules/dto/schedule.dto';
 import { Button } from '../../../shared/components/Button';
 import { Header } from '../../../shared/components/Header';
 import { Screen } from '../../../shared/components/Screen';
@@ -68,6 +69,8 @@ export function ProductivityScreen() {
   const [scheduleStart, setScheduleStart] = useState(defaultScheduleStart);
   const [isSavingSchedules, setIsSavingSchedules] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [scheduleConflicts, setScheduleConflicts] = useState<string[]>([]);
+  const [pendingSchedules, setPendingSchedules] = useState<ScheduleRequest[] | null>(null);
 
   const refresh = useCallback(async () => {
     setIsLoading(true);
@@ -176,11 +179,31 @@ export function ProductivityScreen() {
     setSelectedStepOrders((current) => current.includes(order)
       ? current.filter((value) => value !== order)
       : [...current, order]);
+    setScheduleConflicts([]);
+    setPendingSchedules(null);
   }, []);
 
   const updateDraftStep = useCallback((order: number, changes: Partial<TaskBreakdownStep>) => {
     setDraftSteps((current) => current.map((step) => step.order === order ? { ...step, ...changes } : step));
     setSaveMessage(null);
+    setScheduleConflicts([]);
+    setPendingSchedules(null);
+  }, []);
+
+  const persistSchedules = useCallback(async (schedules: ScheduleRequest[]) => {
+    setIsSavingSchedules(true);
+    setAiError(null);
+    setSaveMessage(null);
+    try {
+      await createSchedules(schedules);
+      setSaveMessage(`${schedules.length}개 단계를 일정으로 저장했습니다.`);
+      setScheduleConflicts([]);
+      setPendingSchedules(null);
+    } catch (err) {
+      setAiError(getErrorMessage(err));
+    } finally {
+      setIsSavingSchedules(false);
+    }
   }, []);
 
   const saveSelectedSteps = useCallback(async () => {
@@ -208,6 +231,8 @@ export function ProductivityScreen() {
     setIsSavingSchedules(true);
     setAiError(null);
     setSaveMessage(null);
+    setScheduleConflicts([]);
+    setPendingSchedules(null);
     try {
       let cursor = new Date(start);
       const schedules = selectedSteps.map((step) => {
@@ -223,14 +248,19 @@ export function ProductivityScreen() {
           repeatType: 'NONE' as const
         };
       });
-      await createSchedules(schedules);
-      setSaveMessage(`${schedules.length}개 단계를 일정으로 저장했습니다.`);
+      const existing = await getSchedulesBetween(schedules[0].startAt, schedules[schedules.length - 1].endAt);
+      if (existing.length > 0) {
+        setScheduleConflicts(existing.map((schedule) => `${schedule.title} · ${schedule.startAt.slice(11, 16)}~${schedule.endAt.slice(11, 16)}`));
+        setPendingSchedules(schedules);
+        return;
+      }
+      await persistSchedules(schedules);
     } catch (err) {
       setAiError(getErrorMessage(err));
     } finally {
       setIsSavingSchedules(false);
     }
-  }, [aiJob?.result, draftSteps, scheduleStart, selectedStepOrders]);
+  }, [aiJob?.result, draftSteps, persistSchedules, scheduleStart, selectedStepOrders]);
 
   return (
     <Screen>
@@ -350,7 +380,11 @@ export function ProductivityScreen() {
               <Text style={styles.inputHelp}>선택한 단계는 입력한 시간부터 순서대로 이어서 배치됩니다.</Text>
               <TextInput
                 value={scheduleStart}
-                onChangeText={setScheduleStart}
+                onChangeText={(value) => {
+                  setScheduleStart(value);
+                  setScheduleConflicts([]);
+                  setPendingSchedules(null);
+                }}
                 placeholder="YYYY-MM-DD HH:mm"
                 placeholderTextColor={colors.muted}
                 style={styles.input}
@@ -361,6 +395,21 @@ export function ProductivityScreen() {
                 loading={isSavingSchedules}
                 disabled={selectedStepOrders.length === 0}
               />
+              {scheduleConflicts.length > 0 && pendingSchedules ? (
+                <View style={styles.conflictBox}>
+                  <Text style={styles.conflictTitle}>기존 일정과 시간이 겹칩니다</Text>
+                  {scheduleConflicts.map((conflict) => (
+                    <Text key={conflict} style={styles.conflictText}>• {conflict}</Text>
+                  ))}
+                  <Text style={styles.inputHelp}>시간을 수정하거나, 겹침을 확인한 뒤 그대로 저장할 수 있습니다.</Text>
+                  <Button
+                    title="충돌을 확인했고 그대로 저장"
+                    variant="secondary"
+                    onPress={() => persistSchedules(pendingSchedules)}
+                    loading={isSavingSchedules}
+                  />
+                </View>
+              ) : null}
               {saveMessage ? <Text style={styles.success}>{saveMessage}</Text> : null}
             </View>
           ) : null}
@@ -436,5 +485,8 @@ const styles = StyleSheet.create({
   stepDescriptionInput: { minHeight: 72, textAlignVertical: 'top' },
   stepTitle: { color: colors.text, fontWeight: '900' },
   success: { color: '#15803d', fontWeight: '800' },
+  conflictBox: { borderWidth: 1, borderColor: colors.warning, borderRadius: 10, padding: 12, gap: 8, backgroundColor: '#fffbeb' },
+  conflictTitle: { color: '#92400e', fontWeight: '900' },
+  conflictText: { color: '#92400e', fontSize: 13 },
   error: { color: colors.danger, marginBottom: 12, fontWeight: '700' }
 });

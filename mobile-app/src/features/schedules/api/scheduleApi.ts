@@ -26,6 +26,11 @@ export async function createSchedule(payload: ScheduleRequest): Promise<Schedule
   return data;
 }
 
+export async function getSchedulesBetween(from: string, to: string): Promise<Schedule[]> {
+  const { data } = await apiClient.get<Schedule[]>('/schedules', { params: { from, to } });
+  return data;
+}
+
 export async function createSchedules(payloads: ScheduleRequest[]): Promise<Schedule[]> {
   const { data } = await apiClient.post<Schedule[]>('/schedules/batch', { schedules: payloads });
   return data;
