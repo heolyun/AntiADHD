@@ -8,10 +8,7 @@ const configuredUrl =
 
 export const apiClient = axios.create({
   baseURL: configuredUrl,
-  timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json'
-  }
+  timeout: 10000
 });
 
 let authFailureHandler: (() => void) | null = null;
