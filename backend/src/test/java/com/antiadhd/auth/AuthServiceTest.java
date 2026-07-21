@@ -36,6 +36,9 @@ class AuthServiceTest {
     @Mock
     UserRepository userRepository;
 
+    @Mock
+    RefreshTokenService refreshTokenService;
+
     @InjectMocks
     AuthService authService;
 
@@ -45,6 +48,7 @@ class AuthServiceTest {
         when(passwordEncoder.encode("password123")).thenReturn("encoded-password");
         when(userRepository.save(any(AppUser.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(jwtService.generateToken(any(AppUser.class))).thenReturn("token");
+        when(refreshTokenService.issue(any(AppUser.class))).thenReturn("refresh-token");
 
         AuthResponse response = authService.signup(new SignupRequest(" TEST@Example.COM ", " Test User ", "password123"));
 
@@ -55,6 +59,7 @@ class AuthServiceTest {
         assertThat(saved.getName()).isEqualTo("Test User");
         assertThat(saved.getPassword()).isEqualTo("encoded-password");
         assertThat(response.token()).isEqualTo("token");
+        assertThat(response.refreshToken()).isEqualTo("refresh-token");
         assertThat(response.user().email()).isEqualTo("test@example.com");
     }
 
@@ -75,10 +80,12 @@ class AuthServiceTest {
         user.setPassword("encoded-password");
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
         when(jwtService.generateToken(user)).thenReturn("token");
+        when(refreshTokenService.issue(user)).thenReturn("refresh-token");
 
         AuthResponse response = authService.login(new LoginRequest(" TEST@Example.COM ", "password123"));
 
         assertThat(response.token()).isEqualTo("token");
+        assertThat(response.refreshToken()).isEqualTo("refresh-token");
         assertThat(response.user().email()).isEqualTo("test@example.com");
         verify(authenticationManager).authenticate(any());
     }

@@ -1,8 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import * as SecureStore from 'expo-secure-store';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { login as loginRequest, signup as signupRequest } from '../api/authApi';
-import { setAccessToken, setAuthFailureHandler } from '../../../shared/api/client';
+import { login as loginRequest, refreshSession, revokeSession, signup as signupRequest } from '../api/authApi';
+import { setAccessToken, setAuthFailureHandler, setTokenRefreshHandler } from '../../../shared/api/client';
 import type { AuthResponse, LoginRequest, SignupRequest, UserSummary } from '../dto/auth.dto';
 
 type AuthContextValue = {
@@ -21,24 +22,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<UserSummary | null>(null);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
+  const sessionRef = useRef<AuthResponse | null>(null);
 
   const clearSession = useCallback(async () => {
     setToken(null);
     setUser(null);
     setAccessToken(null);
-    await AsyncStorage.removeItem(STORAGE_KEY);
+    sessionRef.current = null;
+    await Promise.all([
+      SecureStore.deleteItemAsync(STORAGE_KEY),
+      AsyncStorage.removeItem(STORAGE_KEY)
+    ]);
   }, []);
 
   useEffect(() => {
     async function bootstrap() {
       try {
-        const raw = await AsyncStorage.getItem(STORAGE_KEY);
+        let raw = await SecureStore.getItemAsync(STORAGE_KEY);
+        if (!raw) {
+          raw = await AsyncStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            await SecureStore.setItemAsync(STORAGE_KEY, raw);
+            await AsyncStorage.removeItem(STORAGE_KEY);
+          }
+        }
         if (raw) {
           const session = parseSession(raw);
           if (session) {
             setToken(session.token);
             setUser(session.user);
             setAccessToken(session.token);
+            sessionRef.current = session;
           } else {
             await clearSession();
           }
@@ -59,12 +73,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => setAuthFailureHandler(null);
   }, [clearSession]);
 
-  async function persist(session: AuthResponse) {
+  const persist = useCallback(async (session: AuthResponse) => {
     setToken(session.token);
     setUser(session.user);
     setAccessToken(session.token);
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(session));
-  }
+    sessionRef.current = session;
+    await SecureStore.setItemAsync(STORAGE_KEY, JSON.stringify(session));
+  }, []);
+
+  useEffect(() => {
+    setTokenRefreshHandler(async () => {
+      const refreshToken = sessionRef.current?.refreshToken;
+      if (!refreshToken) return null;
+      try {
+        const session = await refreshSession(refreshToken);
+        await persist(session);
+        return session.token;
+      } catch {
+        await clearSession();
+        return null;
+      }
+    });
+    return () => setTokenRefreshHandler(null);
+  }, [clearSession, persist]);
+
+  const logout = useCallback(async () => {
+    const refreshToken = sessionRef.current?.refreshToken;
+    if (refreshToken) {
+      try {
+        await revokeSession(refreshToken);
+      } catch {
+        // Local logout must still succeed if the server is unavailable.
+      }
+    }
+    await clearSession();
+  }, [clearSession]);
 
   const value = useMemo<AuthContextValue>(() => ({
     token,
@@ -72,8 +115,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isBootstrapping,
     login: async (payload) => persist(await loginRequest(payload)),
     signup: async (payload) => persist(await signupRequest(payload)),
-    logout: clearSession
-  }), [token, user, isBootstrapping, clearSession]);
+    logout
+  }), [token, user, isBootstrapping, logout, persist]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

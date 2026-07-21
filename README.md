@@ -2,7 +2,8 @@
 
 React Native Expo 앱과 Spring Boot API로 구성한 개인 일정관리/타임블록 기반 AI 생산성 관리 플랫폼 MVP입니다.
 
-현재 AI 기능은 실제 외부 API를 호출하지 않고, 추후 OpenAI 등 모델 연동을 붙일 수 있도록 API 경계와 서비스 구조만 준비했습니다.
+AI 시작 계획과 음성 일정 기능은 OpenAI API를 비동기 작업 큐로 호출하며,
+사용량 제한·재시도·실패 상태·음성 원본 삭제를 백엔드에서 관리합니다.
 
 ```text
 React Native App
@@ -122,6 +123,7 @@ BACKEND_PORT=8080
 
 JWT_SECRET=replace-with-at-least-32-characters-secret
 JWT_EXPIRATION_MS=86400000
+JWT_REFRESH_EXPIRATION_MS=2592000000
 CORS_ALLOWED_ORIGINS=http://localhost:19006,http://localhost:8081,http://localhost:8082,http://127.0.0.1:19006,http://127.0.0.1:8081,http://127.0.0.1:8082
 EXPO_PUBLIC_API_BASE_URL=http://localhost:8080/api
 ```
@@ -136,6 +138,7 @@ Backend:
 | `JPA_DDL_AUTO` | Hibernate 스키마 모드. 로컬 기본값은 `update` |
 | `JWT_SECRET` | JWT 서명 키 |
 | `JWT_EXPIRATION_MS` | JWT 만료 시간 |
+| `JWT_REFRESH_EXPIRATION_MS` | 갱신 토큰 만료 시간 |
 | `CORS_ALLOWED_ORIGINS` | 허용할 Origin 목록 |
 
 Mobile:
@@ -147,7 +150,7 @@ Mobile:
 ## 주요 기능
 
 - 회원가입, 로그인, 로그아웃
-- JWT 인증, 내 정보 조회
+- JWT 인증과 회전식 갱신 토큰, 내 정보 조회
 - 일정 생성, 조회, 수정, 삭제
 - 일정 완료 체크
 - 오늘/주간/월간 일정 조회
@@ -193,6 +196,8 @@ Authorization: Bearer <token>
 | --- | --- | --- |
 | POST | `/api/auth/signup` | 회원가입 |
 | POST | `/api/auth/login` | 로그인 및 JWT 발급 |
+| POST | `/api/auth/refresh` | 만료된 액세스 토큰 갱신 및 갱신 토큰 교체 |
+| POST | `/api/auth/logout` | 갱신 토큰 폐기 |
 | GET | `/api/users/me` | 내 정보 조회 |
 
 ### Schedules
@@ -268,7 +273,14 @@ Authorization: Bearer <token>
 | --- | --- | --- |
 | GET | `/api/ai/suggestions` | AI 추천 placeholder |
 
-현재 AI API는 외부 모델 API를 호출하지 않습니다.
+AI 요청은 즉시 작업 ID를 반환하고 별도 worker가 처리합니다. 상세 계약과
+평가 방법은 `docs/ai-task-breakdown.md`, `docs/ai-voice-command-evals.md`를 참고하세요.
+
+## 운영 문서
+
+- Android 서명·버전·베타 배포: `docs/mobile-release.md`
+- 온프레미스 k3s 배포·백업·복구: `docs/onprem-k3s.md`
+- Prometheus/Grafana 운영: `docs/observability.md`
 
 ### Health
 

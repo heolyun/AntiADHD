@@ -11,5 +11,6 @@ data:
   SPRING_DATASOURCE_URL: "jdbc:postgresql://external-postgres.example.local:5432/antiadhd"
   JPA_DDL_AUTO: "validate"
   JWT_EXPIRATION_MS: "86400000"
+  JWT_REFRESH_EXPIRATION_MS: "2592000000"
   CORS_ALLOWED_ORIGINS: "http://api.antiadhd.local,https://api.antiadhd.local"
   JAVA_OPTS: "-XX:MaxRAMPercentage=75.0 -XX:+UseContainerSupport"

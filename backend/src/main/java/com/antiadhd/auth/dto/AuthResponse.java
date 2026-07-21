@@ -5,9 +5,10 @@ import com.antiadhd.user.dto.UserSummary;
 
 public record AuthResponse(
         String token,
+        String refreshToken,
         UserSummary user
 ) {
-    public static AuthResponse from(String token, AppUser user) {
-        return new AuthResponse(token, UserSummary.from(user));
+    public static AuthResponse from(String token, String refreshToken, AppUser user) {
+        return new AuthResponse(token, refreshToken, UserSummary.from(user));
     }
 }

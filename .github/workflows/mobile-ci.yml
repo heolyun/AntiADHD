@@ -40,5 +40,8 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
 
+      - name: Run mobile unit tests
+        run: npm test
+
       - name: Type-check mobile app
         run: npm run typecheck

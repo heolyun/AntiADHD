@@ -2,6 +2,7 @@ package com.antiadhd.auth;
 
 import com.antiadhd.auth.dto.AuthResponse;
 import com.antiadhd.auth.dto.LoginRequest;
+import com.antiadhd.auth.dto.RefreshTokenRequest;
 import com.antiadhd.auth.dto.SignupRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -29,5 +30,16 @@ public class AuthController {
     @PostMapping("/login")
     public AuthResponse login(@Valid @RequestBody LoginRequest request) {
         return authService.login(request);
+    }
+
+    @PostMapping("/refresh")
+    public AuthResponse refresh(@Valid @RequestBody RefreshTokenRequest request) {
+        return authService.refresh(request.refreshToken());
+    }
+
+    @PostMapping("/logout")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void logout(@Valid @RequestBody RefreshTokenRequest request) {
+        authService.logout(request.refreshToken());
     }
 }

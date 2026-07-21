@@ -59,6 +59,15 @@ The verification job checks restored tables and Flyway history, then drops the
 temporary database. The backup PVC is still node-local; copy backups to another
 physical machine before treating this as disaster recovery.
 
+Export the latest verified dump to an external disk or another physical machine:
+
+```powershell
+.\scripts\export-postgres-backup.ps1 -Destination "E:\AntiADHD-backups"
+```
+
+The export command prints a SHA-256 checksum. Keep at least one copy away from
+the k3s host, encrypt the destination disk, and test one exported dump quarterly.
+
 ## Bootstrap local image workflow
 
 The first home-lab deployment uses a locally built image imported into k3s:
@@ -124,6 +133,6 @@ Backups and restore tests are still required.
 - The existing home-lab database uses Flyway baseline version `1`; fresh
   databases execute `V1__initial_schema.sql`.
 - Use immutable `sha-<full-git-sha>` GHCR tags for deployments.
-- Add PostgreSQL backup and restore automation.
+- Schedule the off-node backup export on the trusted administration computer.
 - Add TLS before exposing the service outside the trusted LAN.
 - Keep PostgreSQL as a ClusterIP-only service; do not expose port 5432 publicly.

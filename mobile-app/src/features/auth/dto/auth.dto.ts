@@ -6,6 +6,7 @@ export type UserSummary = {
 
 export type AuthResponse = {
   token: string;
+  refreshToken: string;
   user: UserSummary;
 };
 

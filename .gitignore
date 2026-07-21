@@ -13,5 +13,8 @@ ios/
 .vscode/
 *.iml
 *.log
+*.jks
+*.keystore
+mobile-app/release-signing/
 k8s/**/*secret*.yaml
 !k8s/**/*secret.example.yaml

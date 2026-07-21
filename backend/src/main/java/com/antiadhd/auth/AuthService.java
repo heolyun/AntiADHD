@@ -19,17 +19,20 @@ public class AuthService {
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
     private final UserRepository userRepository;
+    private final RefreshTokenService refreshTokenService;
 
     public AuthService(
             AuthenticationManager authenticationManager,
             JwtService jwtService,
             PasswordEncoder passwordEncoder,
-            UserRepository userRepository
+            UserRepository userRepository,
+            RefreshTokenService refreshTokenService
     ) {
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
         this.passwordEncoder = passwordEncoder;
         this.userRepository = userRepository;
+        this.refreshTokenService = refreshTokenService;
     }
 
     @Transactional
@@ -45,7 +48,7 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(request.password()));
 
         AppUser saved = userRepository.save(user);
-        return AuthResponse.from(jwtService.generateToken(saved), saved);
+        return createSession(saved);
     }
 
     @Transactional(readOnly = true)
@@ -57,7 +60,22 @@ public class AuthService {
 
         AppUser user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new UnauthorizedException("Authentication is required."));
-        return AuthResponse.from(jwtService.generateToken(user), user);
+        return createSession(user);
+    }
+
+    @Transactional
+    public AuthResponse refresh(String refreshToken) {
+        RefreshTokenService.RotatedRefreshToken rotated = refreshTokenService.rotate(refreshToken);
+        return AuthResponse.from(jwtService.generateToken(rotated.user()), rotated.token(), rotated.user());
+    }
+
+    @Transactional
+    public void logout(String refreshToken) {
+        refreshTokenService.revoke(refreshToken);
+    }
+
+    private AuthResponse createSession(AppUser user) {
+        return AuthResponse.from(jwtService.generateToken(user), refreshTokenService.issue(user), user);
     }
 
     private String normalizeEmail(String email) {

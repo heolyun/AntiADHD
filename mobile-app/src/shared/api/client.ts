@@ -11,11 +11,26 @@ export const apiClient = axios.create({
 });
 
 let authFailureHandler: (() => void) | null = null;
+let tokenRefreshHandler: (() => Promise<string | null>) | null = null;
+let refreshInFlight: Promise<string | null> | null = null;
 
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error?.response?.status === 401 || error?.response?.status === 403) {
+  async (error) => {
+    const request = error?.config as (typeof error.config & { _authRetry?: boolean }) | undefined;
+    const isAuthEndpoint = typeof request?.url === 'string' && request.url.startsWith('/auth/');
+    if (error?.response?.status === 401 && request && !request._authRetry && !isAuthEndpoint && tokenRefreshHandler) {
+      request._authRetry = true;
+      refreshInFlight ??= tokenRefreshHandler().finally(() => {
+        refreshInFlight = null;
+      });
+      const refreshedToken = await refreshInFlight;
+      if (refreshedToken) {
+        request.headers.Authorization = `Bearer ${refreshedToken}`;
+        return apiClient(request);
+      }
+    }
+    if (error?.response?.status === 401 && !isAuthEndpoint) {
       authFailureHandler?.();
     }
     return Promise.reject(error);
@@ -33,4 +48,8 @@ export function setAccessToken(token: string | null) {
 
 export function setAuthFailureHandler(handler: (() => void) | null) {
   authFailureHandler = handler;
+}
+
+export function setTokenRefreshHandler(handler: (() => Promise<string | null>) | null) {
+  tokenRefreshHandler = handler;
 }

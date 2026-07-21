@@ -9,6 +9,7 @@
     "plugins": [
       "expo-notifications",
       "expo-audio",
+      "expo-secure-store",
       [
         "react-native-android-widget",
         {
@@ -34,7 +35,8 @@
             "usesCleartextTraffic": true
           }
         }
-      ]
+      ],
+      "./plugins/withAndroidReleaseSigning"
     ],
     "splash": {
       "backgroundColor": "#18202f"
