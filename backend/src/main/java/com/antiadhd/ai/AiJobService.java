@@ -145,8 +145,9 @@ public class AiJobService {
         Instant end = start.atZone(usageProperties.getResetZone())
                 .plusDays(1)
                 .toInstant();
-        long used = aiJobRepository.countByUserAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+        long used = aiJobRepository.countByUserAndJobTypeAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
                 user,
+                AiJobType.TASK_BREAKDOWN,
                 start,
                 end
         );

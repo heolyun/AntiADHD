@@ -48,8 +48,9 @@ class AiJobServiceTest {
     @Test
     void createTaskBreakdown_rejectsWhenDailyLimitIsReached() {
         AppUser user = user("limited@example.com");
-        when(aiJobRepository.countByUserAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+        when(aiJobRepository.countByUserAndJobTypeAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
                 org.mockito.ArgumentMatchers.eq(user),
+                org.mockito.ArgumentMatchers.eq(AiJobType.TASK_BREAKDOWN),
                 org.mockito.ArgumentMatchers.any(Instant.class),
                 org.mockito.ArgumentMatchers.any(Instant.class)
         )).thenReturn(10L);

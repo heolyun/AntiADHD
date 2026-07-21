@@ -14,8 +14,9 @@ public interface AiJobRepository extends JpaRepository<AiJob, UUID> {
 
     long countByStatus(AiJobStatus status);
 
-    long countByUserAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+    long countByUserAndJobTypeAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
             AppUser user,
+            AiJobType jobType,
             Instant start,
             Instant end
     );
