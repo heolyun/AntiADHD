@@ -39,7 +39,7 @@ const steps: GuideStep[] = [
     targetId: 'today-add',
     eyebrow: '2 / 5 · 오늘',
     title: '오늘 할 일을 빠르게 추가해요',
-    description: '오른쪽 아래 + 버튼은 어디서든 바로 오늘 일정을 만드는 가장 빠른 방법이에요.'
+    description: '오른쪽 아래 + 버튼에서 일정 추가, 나중에 정리, 음성 추가를 한 번에 선택할 수 있어요.'
   },
   {
     route: 'Productivity',

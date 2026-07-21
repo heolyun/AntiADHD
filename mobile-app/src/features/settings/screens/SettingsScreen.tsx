@@ -1,4 +1,3 @@
-import Constants from 'expo-constants';
 import { StyleSheet, Text, View } from 'react-native';
 import { Button } from '../../../shared/components/Button';
 import { Header } from '../../../shared/components/Header';
@@ -10,11 +9,6 @@ import { GuideTarget, useOnboarding } from '../../onboarding/context/OnboardingC
 export function SettingsScreen() {
   const { user, logout } = useAuthContext();
   const { openGuide } = useOnboarding();
-  const apiUrl =
-    process.env.EXPO_PUBLIC_API_BASE_URL ||
-    Constants.expoConfig?.extra?.apiBaseUrl ||
-    'http://localhost:8080/api';
-
   return (
     <Screen>
       <Header eyebrow="설정" title="내 정보" />
@@ -23,10 +17,6 @@ export function SettingsScreen() {
         <Text style={styles.value}>{user?.name}</Text>
         <Text style={styles.label}>이메일</Text>
         <Text style={styles.value}>{user?.email}</Text>
-      </View>
-      <View style={styles.card}>
-        <Text style={styles.label}>API 서버</Text>
-        <Text style={styles.value}>{apiUrl}</Text>
       </View>
       <GuideTarget id="settings-guide">
         <Button title="사용 가이드 다시 보기" variant="secondary" onPress={openGuide} />
