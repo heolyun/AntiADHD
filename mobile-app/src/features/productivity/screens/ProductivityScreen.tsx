@@ -3,7 +3,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { createTaskBreakdown, getAiJob } from '../../ai/api/aiApi';
-import type { AiJobResponse } from '../../ai/dto/ai.dto';
+import type { AiJobResponse, TaskBreakdownStep } from '../../ai/dto/ai.dto';
 import { getCategories } from '../../categories/api/categoryApi';
 import { getFocusSessions } from '../../focus/api/focusApi';
 import { getGoals } from '../../goals/api/goalApi';
@@ -63,6 +63,7 @@ export function ProductivityScreen() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [selectedStepOrders, setSelectedStepOrders] = useState<number[]>([]);
+  const [draftSteps, setDraftSteps] = useState<TaskBreakdownStep[]>([]);
   const [scheduleStart, setScheduleStart] = useState(defaultScheduleStart);
   const [isSavingSchedules, setIsSavingSchedules] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
@@ -117,6 +118,7 @@ export function ProductivityScreen() {
   useEffect(() => {
     if (!aiJob?.result) return;
     setSelectedStepOrders(aiJob.result.steps.map((step) => step.order));
+    setDraftSteps(aiJob.result.steps);
     setSaveMessage(null);
   }, [aiJob?.result]);
 
@@ -161,6 +163,11 @@ export function ProductivityScreen() {
       : [...current, order]);
   }, []);
 
+  const updateDraftStep = useCallback((order: number, changes: Partial<TaskBreakdownStep>) => {
+    setDraftSteps((current) => current.map((step) => step.order === order ? { ...step, ...changes } : step));
+    setSaveMessage(null);
+  }, []);
+
   const saveSelectedSteps = useCallback(async () => {
     if (!aiJob?.result) return;
     const normalizedStart = scheduleStart.trim().replace(' ', 'T');
@@ -169,9 +176,17 @@ export function ProductivityScreen() {
       setAiError('시작 날짜와 시간을 YYYY-MM-DD HH:mm 형식으로 입력해 주세요.');
       return;
     }
-    const selectedSteps = aiJob.result.steps.filter((step) => selectedStepOrders.includes(step.order));
+    const selectedSteps = draftSteps.filter((step) => selectedStepOrders.includes(step.order));
     if (selectedSteps.length === 0) {
       setAiError('일정으로 저장할 단계를 하나 이상 선택해 주세요.');
+      return;
+    }
+    if (selectedSteps.some((step) => !step.title.trim())) {
+      setAiError('선택한 모든 단계에 제목을 입력해 주세요.');
+      return;
+    }
+    if (selectedSteps.some((step) => !Number.isInteger(step.estimatedMinutes) || step.estimatedMinutes < 1 || step.estimatedMinutes > 480)) {
+      setAiError('각 단계의 예상 시간은 1~480분 사이로 입력해 주세요.');
       return;
     }
 
@@ -185,8 +200,8 @@ export function ProductivityScreen() {
         cursor = new Date(cursor.getTime() + step.estimatedMinutes * 60_000);
         const color = step.energyLevel === 'HIGH' ? '#ef4444' : step.energyLevel === 'MEDIUM' ? '#f59e0b' : '#22c55e';
         return {
-          title: step.title,
-          description: step.description,
+          title: step.title.trim(),
+          description: step.description.trim(),
           startAt: toLocalDateTimeValue(stepStart),
           endAt: toLocalDateTimeValue(cursor),
           color,
@@ -200,7 +215,7 @@ export function ProductivityScreen() {
     } finally {
       setIsSavingSchedules(false);
     }
-  }, [aiJob?.result, scheduleStart, selectedStepOrders]);
+  }, [aiJob?.result, draftSteps, scheduleStart, selectedStepOrders]);
 
   return (
     <Screen>
@@ -265,18 +280,46 @@ export function ProductivityScreen() {
           {aiJob?.result ? (
             <View style={styles.result}>
               <Text style={styles.resultSummary}>{aiJob.result.summary}</Text>
-              <Text style={styles.status}>총 예상 시간 {aiJob.result.totalEstimatedMinutes}분</Text>
-              {aiJob.result.steps.map((step) => (
-                <Pressable
-                  key={step.order}
-                  onPress={() => toggleStep(step.order)}
-                  style={[styles.step, selectedStepOrders.includes(step.order) && styles.selectedStep]}
-                >
-                  <Text style={styles.selection}>{selectedStepOrders.includes(step.order) ? '✓ 일정에 추가' : '○ 제외됨'}</Text>
-                  <Text style={styles.stepTitle}>{step.order}. {step.title}</Text>
-                  <Text style={styles.description}>{step.description}</Text>
-                  <Text style={styles.status}>{step.estimatedMinutes}분 · 에너지 {step.energyLevel}</Text>
-                </Pressable>
+              <Text style={styles.status}>
+                선택한 단계 총 {draftSteps
+                  .filter((step) => selectedStepOrders.includes(step.order))
+                  .reduce((total, step) => total + step.estimatedMinutes, 0)}분
+              </Text>
+              {draftSteps.map((step) => (
+                <View key={step.order} style={[styles.step, selectedStepOrders.includes(step.order) && styles.selectedStep]}>
+                  <Pressable onPress={() => toggleStep(step.order)} style={styles.selectionButton}>
+                    <Text style={styles.selection}>{selectedStepOrders.includes(step.order) ? '✓ 일정에 추가' : '○ 제외됨'}</Text>
+                  </Pressable>
+                  <Text style={styles.stepTitle}>{step.order}단계</Text>
+                  <Text style={styles.inputLabel}>제목</Text>
+                  <TextInput
+                    value={step.title}
+                    onChangeText={(title) => updateDraftStep(step.order, { title })}
+                    maxLength={120}
+                    placeholderTextColor={colors.muted}
+                    style={styles.input}
+                  />
+                  <Text style={styles.inputLabel}>설명</Text>
+                  <TextInput
+                    value={step.description}
+                    onChangeText={(description) => updateDraftStep(step.order, { description })}
+                    multiline
+                    maxLength={1000}
+                    placeholderTextColor={colors.muted}
+                    style={[styles.input, styles.stepDescriptionInput]}
+                  />
+                  <Text style={styles.inputLabel}>예상 시간(분)</Text>
+                  <TextInput
+                    value={String(step.estimatedMinutes || '')}
+                    onChangeText={(value) => updateDraftStep(step.order, { estimatedMinutes: Number(value.replace(/\D/g, '')) })}
+                    keyboardType="number-pad"
+                    maxLength={3}
+                    placeholder="예: 20"
+                    placeholderTextColor={colors.muted}
+                    style={styles.input}
+                  />
+                  <Text style={styles.status}>에너지 {step.energyLevel}</Text>
+                </View>
               ))}
               <Text style={styles.inputLabel}>첫 단계 시작 날짜·시간</Text>
               <Text style={styles.inputHelp}>선택한 단계는 입력한 시간부터 순서대로 이어서 배치됩니다.</Text>
@@ -363,7 +406,9 @@ const styles = StyleSheet.create({
   resultSummary: { color: colors.text, lineHeight: 22, fontWeight: '800' },
   step: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, padding: 12, gap: 4 },
   selectedStep: { borderColor: colors.primary, backgroundColor: '#eff6ff' },
+  selectionButton: { alignSelf: 'flex-start', paddingVertical: 4 },
   selection: { color: colors.primary, fontSize: 12, fontWeight: '900' },
+  stepDescriptionInput: { minHeight: 72, textAlignVertical: 'top' },
   stepTitle: { color: colors.text, fontWeight: '900' },
   success: { color: '#15803d', fontWeight: '800' },
   error: { color: colors.danger, marginBottom: 12, fontWeight: '700' }
