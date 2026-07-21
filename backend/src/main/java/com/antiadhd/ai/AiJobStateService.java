@@ -38,6 +38,22 @@ public class AiJobStateService {
     }
 
     @Transactional
+    public void completeVoiceCommand(UUID jobId, OpenAiVoiceCommandResult response) {
+        AiJob job = aiJobRepository.findById(jobId)
+                .orElseThrow(() -> new IllegalStateException("Claimed AI job no longer exists."));
+        try {
+            job.setResultJson(objectMapper.writeValueAsString(response.result()));
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException("Unable to serialize the voice command result.", exception);
+        }
+        job.setProviderResponseId(response.providerResponseId());
+        job.setModel(response.model());
+        job.setStatus(AiJobStatus.COMPLETED);
+        job.setCompletedAt(Instant.now(clock));
+        job.setClaimedAt(null);
+    }
+
+    @Transactional
     public AiJobStatus failOrRetry(UUID jobId, OpenAiException failure, int maxAttempts) {
         AiJob job = aiJobRepository.findById(jobId)
                 .orElseThrow(() -> new IllegalStateException("Claimed AI job no longer exists."));

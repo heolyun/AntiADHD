@@ -72,6 +72,7 @@ export function HomeScreen() {
         title={today.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' })}
         right={(
           <View style={styles.headerActions}>
+            <Button title="🎤" variant="secondary" onPress={() => navigation.navigate('VoiceCommand')} />
             <Button title="Inbox" variant="secondary" onPress={() => navigation.navigate('Inbox')} />
             <Button title="일정 추가" onPress={() => navigation.navigate('ScheduleEdit')} />
           </View>

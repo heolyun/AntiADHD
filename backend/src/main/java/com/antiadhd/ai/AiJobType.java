@@ -1,5 +1,6 @@
 package com.antiadhd.ai;
 
 public enum AiJobType {
-    TASK_BREAKDOWN
+    TASK_BREAKDOWN,
+    VOICE_COMMAND
 }

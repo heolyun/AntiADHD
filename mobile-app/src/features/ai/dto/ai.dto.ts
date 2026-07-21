@@ -39,3 +39,25 @@ export type AiJobResponse = {
   createdAt: string;
   completedAt: string | null;
 };
+
+export type VoiceCommandResult = {
+  transcript: string;
+  intent: 'CREATE_SCHEDULE' | 'CREATE_INBOX';
+  title: string;
+  description: string | null;
+  startAt: string | null;
+  durationMinutes: number | null;
+  confidence: number;
+  clarificationQuestion: string | null;
+};
+
+export type VoiceCommandJobResponse = {
+  jobId: string;
+  status: AiJobStatus;
+  result: VoiceCommandResult | null;
+  failureCode: string | null;
+  failureMessage: string | null;
+  attemptCount: number;
+  createdAt: string;
+  completedAt: string | null;
+};

@@ -15,6 +15,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
+import com.antiadhd.ai.dto.VoiceCommandJobResponse;
 
 @RestController
 @RequestMapping("/api/ai")
@@ -37,5 +41,19 @@ public class AiJobController {
     @GetMapping("/jobs/{id}")
     public AiJobResponse get(@AuthenticationPrincipal AppUser user, @PathVariable UUID id) {
         return aiJobService.get(user, id);
+    }
+
+    @PostMapping(value = "/voice-commands", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    public AiJobAcceptedResponse createVoiceCommand(
+            @AuthenticationPrincipal AppUser user,
+            @RequestPart("audio") MultipartFile audio
+    ) {
+        return aiJobService.createVoiceCommand(user, audio);
+    }
+
+    @GetMapping("/voice-commands/{id}")
+    public VoiceCommandJobResponse getVoiceCommand(@AuthenticationPrincipal AppUser user, @PathVariable UUID id) {
+        return aiJobService.getVoiceCommand(user, id);
     }
 }

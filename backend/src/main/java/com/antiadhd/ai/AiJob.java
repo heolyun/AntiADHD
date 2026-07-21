@@ -49,6 +49,9 @@ public class AiJob {
 
     private Integer availableMinutes;
 
+    @Column(length = 500)
+    private String audioPath;
+
     @Column(columnDefinition = "text")
     private String resultJson;
 
@@ -101,6 +104,8 @@ public class AiJob {
     public void setDeadline(LocalDate deadline) { this.deadline = deadline; }
     public Integer getAvailableMinutes() { return availableMinutes; }
     public void setAvailableMinutes(Integer availableMinutes) { this.availableMinutes = availableMinutes; }
+    public String getAudioPath() { return audioPath; }
+    public void setAudioPath(String audioPath) { this.audioPath = audioPath; }
     public String getResultJson() { return resultJson; }
     public void setResultJson(String resultJson) { this.resultJson = resultJson; }
     public String getProviderResponseId() { return providerResponseId; }

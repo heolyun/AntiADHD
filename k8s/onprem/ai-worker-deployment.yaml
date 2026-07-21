@@ -22,6 +22,8 @@ spec:
         app.kubernetes.io/part-of: antiadhd
     spec:
       terminationGracePeriodSeconds: 120
+      securityContext:
+        fsGroup: 100
       containers:
         - name: worker
           image: ghcr.io/YOUR_GITHUB_ID/antiadhd-backend:0.1.0
@@ -45,6 +47,13 @@ spec:
               value: "true"
             - name: OPENAI_MODEL
               value: gpt-5.6-luna
+            - name: OPENAI_TRANSCRIPTION_MODEL
+              value: gpt-4o-mini-transcribe
+            - name: AI_VOICE_STORAGE_PATH
+              value: /var/lib/antiadhd/voice-jobs
+          volumeMounts:
+            - name: voice-jobs
+              mountPath: /var/lib/antiadhd/voice-jobs
           startupProbe:
             httpGet:
               path: /actuator/health/liveness
@@ -77,3 +86,7 @@ spec:
             allowPrivilegeEscalation: false
             runAsNonRoot: true
             runAsUser: 100
+      volumes:
+        - name: voice-jobs
+          persistentVolumeClaim:
+            claimName: antiadhd-voice-jobs

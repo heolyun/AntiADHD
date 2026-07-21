@@ -18,6 +18,7 @@ import type { RootTabParamList, ScheduleStackParamList } from '../types/navigati
 import { useAuthContext } from '../features/auth/context/AuthContext';
 import { OnboardingProvider } from '../features/onboarding/context/OnboardingContext';
 import { InboxScreen } from '../features/inbox/screens/InboxScreen';
+import { VoiceCommandScreen } from '../features/ai/screens/VoiceCommandScreen';
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
 const Stack = createNativeStackNavigator<ScheduleStackParamList>();
@@ -35,7 +36,8 @@ const labels = {
   routineManager: '\uB8E8\uD2F4',
   goalManager: '\uBAA9\uD45C',
   dailyReview: '\uD558\uB8E8 \uD68C\uACE0',
-  inbox: 'Inbox'
+  inbox: 'Inbox',
+  voiceCommand: '음성으로 일정 추가'
 };
 
 function MainTabs() {
@@ -100,6 +102,7 @@ export function RootTabs({
         <Stack.Screen name="GoalManager" component={GoalManagerScreen} options={{ title: labels.goalManager }} />
         <Stack.Screen name="DailyReview" component={DailyReviewScreen} options={{ title: labels.dailyReview }} />
         <Stack.Screen name="Inbox" component={InboxScreen} options={{ title: labels.inbox }} />
+        <Stack.Screen name="VoiceCommand" component={VoiceCommandScreen} options={{ title: labels.voiceCommand }} />
       </Stack.Navigator>
     </OnboardingProvider>
   );

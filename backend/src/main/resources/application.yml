@@ -10,6 +10,10 @@ spring:
     url: ${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}
+  servlet:
+    multipart:
+      max-file-size: 6MB
+      max-request-size: 7MB
   jpa:
     hibernate:
       ddl-auto: ${JPA_DDL_AUTO:update}
@@ -44,7 +48,10 @@ app:
       api-key: ${OPENAI_API_KEY:}
       base-url: ${OPENAI_BASE_URL:https://api.openai.com}
       model: ${OPENAI_MODEL:gpt-5.6-luna}
+      transcription-model: ${OPENAI_TRANSCRIPTION_MODEL:gpt-4o-mini-transcribe}
       timeout-seconds: ${OPENAI_TIMEOUT_SECONDS:90}
+    voice:
+      storage-path: ${AI_VOICE_STORAGE_PATH:/tmp/antiadhd-voice}
 
 management:
   endpoints:

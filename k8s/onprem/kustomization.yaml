@@ -9,6 +9,7 @@ resources:
   - postgres-backup-cronjob.yaml
   - ai-worker-deployment.yaml
   - ai-worker-service.yaml
+  - voice-jobs-pvc.yaml
 images:
   - name: ghcr.io/YOUR_GITHUB_ID/antiadhd-backend
     newName: antiadhd-backend
@@ -38,6 +39,22 @@ patches:
         name: antiadhd-backend
       spec:
         replicas: 1
+        template:
+          spec:
+            securityContext:
+              fsGroup: 100
+            containers:
+              - name: backend
+                env:
+                  - name: AI_VOICE_STORAGE_PATH
+                    value: /var/lib/antiadhd/voice-jobs
+                volumeMounts:
+                  - name: voice-jobs
+                    mountPath: /var/lib/antiadhd/voice-jobs
+            volumes:
+              - name: voice-jobs
+                persistentVolumeClaim:
+                  claimName: antiadhd-voice-jobs
   - target:
       kind: Ingress
       name: antiadhd-backend
