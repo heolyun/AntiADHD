@@ -15,6 +15,7 @@ import type { Schedule } from '../dto/schedule.dto';
 import { toDateKey, toLocalDateTimeValue } from '../../../shared/utils/date';
 import { getErrorMessage } from '../../../shared/utils/error';
 import { materializeRoutines } from '../../routines/api/routineApi';
+import { VoiceCommandModal } from '../../ai/screens/VoiceCommandScreen';
 
 type Navigation = NativeStackNavigationProp<ScheduleStackParamList>;
 
@@ -24,6 +25,7 @@ export function HomeScreen() {
   const { schedules, isLoading, error, toggleComplete, refresh: refreshSchedules } = useSchedules('today', today);
   const [overdue, setOverdue] = useState<Schedule[]>([]);
   const [overdueError, setOverdueError] = useState<string | null>(null);
+  const [voiceModalVisible, setVoiceModalVisible] = useState(false);
 
   const refreshOverdue = useCallback(async () => {
     try {
@@ -72,7 +74,7 @@ export function HomeScreen() {
         title={today.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' })}
         right={(
           <View style={styles.headerActions}>
-            <Button title="🎤" variant="secondary" onPress={() => navigation.navigate('VoiceCommand')} />
+            <Button title="🎤" variant="secondary" onPress={() => setVoiceModalVisible(true)} />
             <Button title="Inbox" variant="secondary" onPress={() => navigation.navigate('Inbox')} />
             <Button title="일정 추가" onPress={() => navigation.navigate('ScheduleEdit')} />
           </View>
@@ -110,6 +112,11 @@ export function HomeScreen() {
           <Text style={styles.fabText}>+</Text>
         </Pressable>
       </GuideTarget>
+      <VoiceCommandModal
+        visible={voiceModalVisible}
+        onClose={() => setVoiceModalVisible(false)}
+        onSaved={() => { setVoiceModalVisible(false); refreshSchedules(); }}
+      />
     </Screen>
   );
 }

@@ -27,11 +27,11 @@ export async function createVoiceCommand(uri: string): Promise<AiJobAcceptedResp
   } else {
     form.append('audio', { uri, name: 'voice-command.m4a', type: 'audio/m4a' } as unknown as Blob);
   }
-  const { data } = await apiClient.post<AiJobAcceptedResponse>('/ai/voice-commands', form);
+  const { data } = await apiClient.post<AiJobAcceptedResponse>('/ai/voice-commands', form, { timeout: 30000 });
   return data;
 }
 
 export async function getVoiceCommand(jobId: string): Promise<VoiceCommandJobResponse> {
-  const { data } = await apiClient.get<VoiceCommandJobResponse>(`/ai/voice-commands/${jobId}`);
+  const { data } = await apiClient.get<VoiceCommandJobResponse>(`/ai/voice-commands/${jobId}`, { timeout: 20000 });
   return data;
 }
