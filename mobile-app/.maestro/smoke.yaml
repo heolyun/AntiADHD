@@ -24,7 +24,10 @@ name: Sign up and open the primary schedule flow
       id: "monthly-calendar-screen"
     timeout: 10000
 - tapOn: "오늘"
-- assertVisible: "오늘 일정"
+- extendedWaitUntil:
+    visible:
+      id: "today-screen"
+    timeout: 10000
 - tapOn:
     id: "today-add-menu"
 - assertVisible: "무엇을 추가할까요?"
@@ -34,5 +37,6 @@ name: Sign up and open the primary schedule flow
     id: "schedule-title"
 - back
 - tapOn: "설정"
-- assertVisible: "계정 보안"
+- assertVisible:
+    id: "settings-screen"
 - assertVisible: "비밀번호 변경"

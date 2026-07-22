@@ -84,7 +84,7 @@ export function HomeScreen() {
   }, [refreshOverdue]);
 
   return (
-    <Screen>
+    <Screen testID="today-screen">
       <Header
         eyebrow="오늘 일정"
         title={today.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' })}

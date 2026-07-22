@@ -56,7 +56,7 @@ export function SettingsScreen() {
     );
   }
   return (
-    <Screen>
+    <Screen testID="settings-screen">
       <Header eyebrow="설정" title="내 정보" />
       <View style={styles.card}>
         <Text style={styles.label}>이름</Text>
