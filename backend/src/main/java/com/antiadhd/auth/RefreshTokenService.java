@@ -61,6 +61,11 @@ public class RefreshTokenService {
         repository.deleteByTokenHash(hash(rawToken));
     }
 
+    @Transactional
+    public void revokeAll(AppUser user) {
+        repository.deleteByUserId(user.getId());
+    }
+
     private String hash(String rawToken) {
         try {
             byte[] digest = MessageDigest.getInstance("SHA-256")

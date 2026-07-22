@@ -20,6 +20,15 @@ export async function revokeSession(refreshToken: string): Promise<void> {
   await apiClient.post('/auth/logout', { refreshToken });
 }
 
+export async function changePassword(currentPassword: string, newPassword: string): Promise<AuthResponse> {
+  const { data } = await apiClient.put<AuthResponse>('/users/me/password', { currentPassword, newPassword });
+  return data;
+}
+
+export async function deleteAccount(password: string): Promise<void> {
+  await apiClient.delete('/users/me', { data: { password } });
+}
+
 export async function getMe(): Promise<UserSummary> {
   const { data } = await apiClient.get<UserSummary>('/users/me');
   return data;

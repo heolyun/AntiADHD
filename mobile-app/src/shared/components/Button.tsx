@@ -10,17 +10,19 @@ type ButtonProps = {
   disabled?: boolean;
   loading?: boolean;
   nativeID?: string;
+  testID?: string;
   onLayout?: (event: LayoutChangeEvent) => void;
 };
 
 export const Button = forwardRef<View, ButtonProps>(function Button(
-  { title, onPress, variant = 'primary', disabled, loading, nativeID, onLayout },
+  { title, onPress, variant = 'primary', disabled, loading, nativeID, testID, onLayout },
   ref
 ) {
   return (
     <Pressable
       ref={ref}
       nativeID={nativeID}
+      testID={testID}
       onPress={onPress}
       onLayout={onLayout}
       disabled={disabled || loading}

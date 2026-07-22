@@ -31,10 +31,10 @@ export function LoginScreen({ navigation }: Props) {
       <View style={styles.panel}>
         <Text style={styles.logo}>AtiADHD</Text>
         <Text style={styles.title}>오늘의 시간을 정리하세요</Text>
-        <TextInput style={styles.input} placeholder="이메일" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} />
-        <TextInput style={styles.input} placeholder="비밀번호" secureTextEntry value={password} onChangeText={setPassword} />
+        <TextInput testID="login-email" style={styles.input} placeholder="이메일" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} />
+        <TextInput testID="login-password" style={styles.input} placeholder="비밀번호" secureTextEntry value={password} onChangeText={setPassword} />
         {error ? <Text style={styles.error}>{error}</Text> : null}
-        <Button title="로그인" loading={isLoading} onPress={submit} />
+        <Button testID="login-submit" title="로그인" loading={isLoading} onPress={submit} />
         <Pressable onPress={() => navigation.navigate('Signup')}>
           <Text style={styles.link}>처음이라면 회원가입</Text>
         </Pressable>

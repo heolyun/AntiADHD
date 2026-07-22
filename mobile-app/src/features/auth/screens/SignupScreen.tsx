@@ -38,11 +38,11 @@ export function SignupScreen({ navigation }: Props) {
       <View style={styles.panel}>
         <Text style={styles.logo}>AtiADHD</Text>
         <Text style={styles.title}>계정 만들기</Text>
-        <TextInput style={styles.input} placeholder="이름" value={name} onChangeText={setName} />
-        <TextInput style={styles.input} placeholder="이메일" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} />
-        <TextInput style={styles.input} placeholder="비밀번호 8자 이상" secureTextEntry value={password} onChangeText={setPassword} />
+        <TextInput testID="signup-name" style={styles.input} placeholder="이름" value={name} onChangeText={setName} />
+        <TextInput testID="signup-email" style={styles.input} placeholder="이메일" autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} />
+        <TextInput testID="signup-password" style={styles.input} placeholder="비밀번호 8자 이상" secureTextEntry value={password} onChangeText={setPassword} />
         {error ? <Text style={styles.error}>{error}</Text> : null}
-        <Button title="회원가입" loading={isLoading} onPress={submit} />
+        <Button testID="signup-submit" title="회원가입" loading={isLoading} onPress={submit} />
         <Pressable onPress={() => navigation.navigate('Login')}>
           <Text style={styles.link}>이미 계정이 있어요</Text>
         </Pressable>

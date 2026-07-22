@@ -1,0 +1,91 @@
+name: Mobile E2E
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "mobile-app/**"
+      - "backend/**"
+      - "docker-compose.yml"
+      - ".github/workflows/mobile-e2e.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  EXPO_PUBLIC_API_BASE_URL: http://10.0.2.2:8080/api
+  MAESTRO_EMAIL: e2e-${{ github.run_id }}@example.com
+  MAESTRO_PASSWORD: e2e-password-2026
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Set up Java
+        uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5.6.0
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: mobile-app/package-lock.json
+
+      - name: Start ephemeral API and database
+        env:
+          JWT_SECRET: e2e-only-secret-that-is-longer-than-thirty-two-characters
+        run: docker compose up --build --detach --wait
+
+      - name: Install mobile dependencies
+        working-directory: mobile-app
+        run: npm ci
+
+      - name: Generate Android project
+        working-directory: mobile-app
+        run: npx expo prebuild --platform android --clean --no-install
+
+      - name: Build self-contained test APK
+        working-directory: mobile-app/android
+        run: ./gradlew assembleRelease
+
+      - name: Install Maestro CLI 2.7.0
+        run: |
+          curl --fail --location --silent --show-error \
+            --output maestro.zip \
+            https://github.com/mobile-dev-inc/Maestro/releases/download/cli-2.7.0/maestro.zip
+          curl --fail --location --silent --show-error \
+            --output maestro-checksums.txt \
+            https://github.com/mobile-dev-inc/Maestro/releases/download/cli-2.7.0/checksums_sha256.txt
+          grep 'maestro.zip' maestro-checksums.txt | sha256sum --check
+          mkdir -p "$HOME/.maestro"
+          unzip -q maestro.zip -d "$HOME/.maestro"
+
+      - name: Run Android user journey
+        uses: ReactiveCircus/android-emulator-runner@c9c93e6ba9c4194322e114c40970d5983d9a07cc # v2.38.0
+        with:
+          api-level: 35
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          script: |
+            adb install -r mobile-app/android/app/build/outputs/apk/release/app-release.apk
+            "$HOME/.maestro/maestro/bin/maestro" test mobile-app/.maestro/smoke.yaml
+
+      - name: Show backend logs after failure
+        if: failure()
+        run: docker compose logs --no-color --tail=200 backend
+
+      - name: Stop ephemeral services
+        if: always()
+        run: docker compose down --volumes

@@ -6,6 +6,7 @@ import { SplashScreen } from './src/features/auth/screens/SplashScreen';
 import { AuthStack } from './src/navigation/AuthStack';
 import { RootTabs } from './src/navigation/RootTabs';
 import type { RootTabParamList, ScheduleStackParamList } from './src/types/navigation';
+import { AppErrorBoundary } from './src/shared/components/AppErrorBoundary';
 
 const navigationRef = createNavigationContainerRef<ScheduleStackParamList>();
 const linking: LinkingOptions<ScheduleStackParamList> = {
@@ -46,8 +47,10 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <StatusBar style="dark" />
-        <AppNavigator />
+        <AppErrorBoundary>
+          <StatusBar style="dark" />
+          <AppNavigator />
+        </AppErrorBoundary>
       </AuthProvider>
     </SafeAreaProvider>
   );

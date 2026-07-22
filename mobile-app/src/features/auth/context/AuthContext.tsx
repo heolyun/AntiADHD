@@ -2,7 +2,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import { login as loginRequest, refreshSession, revokeSession, signup as signupRequest } from '../api/authApi';
+import {
+  changePassword as changePasswordRequest,
+  deleteAccount as deleteAccountRequest,
+  login as loginRequest,
+  refreshSession,
+  revokeSession,
+  signup as signupRequest
+} from '../api/authApi';
 import { setAccessToken, setAuthFailureHandler, setTokenRefreshHandler } from '../../../shared/api/client';
 import type { AuthResponse, LoginRequest, SignupRequest, UserSummary } from '../dto/auth.dto';
 
@@ -12,6 +19,8 @@ type AuthContextValue = {
   isBootstrapping: boolean;
   login: (payload: LoginRequest) => Promise<void>;
   signup: (payload: SignupRequest) => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  deleteAccount: (password: string) => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -115,8 +124,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isBootstrapping,
     login: async (payload) => persist(await loginRequest(payload)),
     signup: async (payload) => persist(await signupRequest(payload)),
+    changePassword: async (currentPassword, newPassword) => {
+      await persist(await changePasswordRequest(currentPassword, newPassword));
+    },
+    deleteAccount: async (password) => {
+      await deleteAccountRequest(password);
+      await clearSession();
+    },
     logout
-  }), [token, user, isBootstrapping, logout, persist]);
+  }), [token, user, isBootstrapping, clearSession, logout, persist]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

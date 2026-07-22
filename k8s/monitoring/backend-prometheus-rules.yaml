@@ -59,3 +59,11 @@ spec:
           annotations:
             summary: AntiADHD AI jobs are failing
             description: At least one AI job permanently failed during the last fifteen minutes.
+        - alert: AntiAdhdMobileErrorsIncreasing
+          expr: sum(increase(antiadhd_mobile_errors_total[15m])) > 2
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: Multiple AtiADHD mobile errors were reported
+            description: More than two unexpected mobile application errors were reported in fifteen minutes.

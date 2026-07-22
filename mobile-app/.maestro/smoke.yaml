@@ -1,0 +1,36 @@
+appId: com.heolyun.atiadhd
+name: Sign up and open the primary schedule flow
+---
+- launchApp:
+    clearState: true
+- tapOn: "처음이라면 회원가입"
+- tapOn:
+    id: "signup-name"
+- inputText: "E2E User"
+- tapOn:
+    id: "signup-email"
+- inputText: ${MAESTRO_EMAIL}
+- tapOn:
+    id: "signup-password"
+- inputText: ${MAESTRO_PASSWORD}
+- tapOn:
+    id: "signup-submit"
+- extendedWaitUntil:
+    visible: "월간 캘린더"
+    timeout: 20000
+- tapOn:
+    text: "건너뛰기"
+    optional: true
+- tapOn: "오늘"
+- assertVisible: "오늘 일정"
+- tapOn:
+    id: "today-add-menu"
+- assertVisible: "무엇을 추가할까요?"
+- tapOn: "일정 추가"
+- assertVisible: "타임블록 등록"
+- assertVisible:
+    id: "schedule-title"
+- back
+- tapOn: "설정"
+- assertVisible: "계정 보안"
+- assertVisible: "비밀번호 변경"

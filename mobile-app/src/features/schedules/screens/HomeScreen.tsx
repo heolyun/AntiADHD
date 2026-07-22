@@ -118,6 +118,7 @@ export function HomeScreen() {
       />
       <GuideTarget id="today-add" style={styles.fabContainer}>
         <Pressable
+          testID="today-add-menu"
           accessibilityRole="button"
           accessibilityLabel="추가 메뉴 열기"
           style={styles.fab}

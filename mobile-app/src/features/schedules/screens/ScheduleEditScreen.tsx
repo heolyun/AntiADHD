@@ -70,6 +70,7 @@ export function ScheduleEditScreen({ navigation, route }: ScheduleEditProps) {
         <View style={styles.section}>
           <Text style={styles.label}>제목</Text>
           <TextInput
+            testID="schedule-title"
             style={styles.input}
             placeholder="예: 오전 집중 업무"
             value={form.title}
@@ -164,7 +165,7 @@ export function ScheduleEditScreen({ navigation, route }: ScheduleEditProps) {
         </View>
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
-        <Button title={scheduleId ? '저장' : '등록'} loading={isSaving} onPress={handleSave} />
+        <Button testID="schedule-submit" title={scheduleId ? '저장' : '등록'} loading={isSaving} onPress={handleSave} />
       </ScrollView>
     </Screen>
   );

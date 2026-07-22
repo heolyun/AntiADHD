@@ -199,6 +199,8 @@ Authorization: Bearer <token>
 | POST | `/api/auth/refresh` | 만료된 액세스 토큰 갱신 및 갱신 토큰 교체 |
 | POST | `/api/auth/logout` | 갱신 토큰 폐기 |
 | GET | `/api/users/me` | 내 정보 조회 |
+| PUT | `/api/users/me/password` | 현재 비밀번호 확인 후 비밀번호와 세션 갱신 |
+| DELETE | `/api/users/me` | 현재 비밀번호 확인 후 계정과 연결 데이터 삭제 |
 
 ### Schedules
 
@@ -281,6 +283,7 @@ AI 요청은 즉시 작업 ID를 반환하고 별도 worker가 처리합니다. 
 - Android 서명·버전·베타 배포: `docs/mobile-release.md`
 - 온프레미스 k3s 배포·백업·복구: `docs/onprem-k3s.md`
 - Prometheus/Grafana 운영: `docs/observability.md`
+- 개인정보·음성·오류 로그 보관 정책: `docs/privacy-and-data-retention.md`
 
 ### Health
 
