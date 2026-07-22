@@ -2,6 +2,7 @@ import axios from 'axios';
 import Constants from 'expo-constants';
 
 const configuredUrl =
+  process.env.EXPO_PUBLIC_API_BASE_URL ||
   Constants.expoConfig?.extra?.apiBaseUrl ||
   'http://localhost:8080/api';
 
