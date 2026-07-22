@@ -19,7 +19,10 @@ name: Sign up and open the primary schedule flow
     visible: "건너뛰기"
     timeout: 20000
 - tapOn: "건너뛰기"
-- assertVisible: "월간 캘린더"
+- extendedWaitUntil:
+    visible:
+      id: "monthly-calendar-screen"
+    timeout: 10000
 - tapOn: "오늘"
 - assertVisible: "오늘 일정"
 - tapOn:

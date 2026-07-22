@@ -59,7 +59,7 @@ export function MonthlyCalendarScreen() {
   }, [activeTargetId]);
 
   return (
-    <Screen>
+    <Screen testID="monthly-calendar-screen">
       <Header eyebrow={'\uC6D4\uAC04 \uCE98\uB9B0\uB354'} title={title} />
       {error ? <Text style={styles.error}>{error}</Text> : null}
 

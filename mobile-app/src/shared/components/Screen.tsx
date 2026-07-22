@@ -2,9 +2,9 @@ import { ReactNode } from 'react';
 import { SafeAreaView, StyleSheet, View } from 'react-native';
 import { colors } from '../constants/theme';
 
-export function Screen({ children }: { children: ReactNode }) {
+export function Screen({ children, testID }: { children: ReactNode; testID?: string }) {
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} testID={testID}>
       <View style={styles.container}>{children}</View>
     </SafeAreaView>
   );
