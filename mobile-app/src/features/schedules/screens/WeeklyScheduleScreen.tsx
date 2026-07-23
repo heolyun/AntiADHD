@@ -8,6 +8,7 @@ import { addDays, formatTime, startOfWeek, toDateKey } from '../../../shared/uti
 import type { ScheduleStackParamList } from '../../../types/navigation';
 import { useSchedules } from '../hooks/useSchedules';
 import { GuideTarget } from '../../onboarding/context/OnboardingContext';
+import { ScheduleSyncBanner } from '../offline/ScheduleSyncBanner';
 
 type Navigation = NativeStackNavigationProp<ScheduleStackParamList>;
 
@@ -21,6 +22,7 @@ export function WeeklyScheduleScreen() {
   return (
     <Screen>
       <Header eyebrow="주간 타임블록" title="이번 주" />
+      <ScheduleSyncBanner />
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <ScrollView contentContainerStyle={styles.days}>
         {days.map((day, dayIndex) => {

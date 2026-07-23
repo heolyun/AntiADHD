@@ -16,6 +16,8 @@ import { toDateKey, toLocalDateTimeValue } from '../../../shared/utils/date';
 import { getErrorMessage } from '../../../shared/utils/error';
 import { materializeRoutines } from '../../routines/api/routineApi';
 import { VoiceCommandModal } from '../../ai/screens/VoiceCommandScreen';
+import { ScheduleSyncBanner } from '../offline/ScheduleSyncBanner';
+import { isOfflineRetryable } from '../offline/scheduleOfflineStore';
 
 type Navigation = NativeStackNavigationProp<ScheduleStackParamList>;
 
@@ -57,7 +59,9 @@ export function HomeScreen() {
   useFocusEffect(useCallback(() => {
     materializeRoutines(toDateKey(new Date()))
       .then(() => refreshSchedules())
-      .catch((err) => setOverdueError(getErrorMessage(err)));
+      .catch((err) => {
+        if (!isOfflineRetryable(err)) setOverdueError(getErrorMessage(err));
+      });
   }, [refreshSchedules]));
 
   const moveToTomorrow = useCallback(async (schedule: Schedule) => {
@@ -89,6 +93,7 @@ export function HomeScreen() {
         eyebrow="오늘 일정"
         title={today.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' })}
       />
+      <ScheduleSyncBanner />
       <View style={styles.summary}>
         <Text style={styles.summaryText}>전체 {schedules.length}</Text>
         <Text style={styles.summaryText}>완료 {schedules.filter((item) => item.completed).length}</Text>

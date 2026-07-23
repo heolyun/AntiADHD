@@ -7,6 +7,7 @@ import { AuthStack } from './src/navigation/AuthStack';
 import { RootTabs } from './src/navigation/RootTabs';
 import type { RootTabParamList, ScheduleStackParamList } from './src/types/navigation';
 import { AppErrorBoundary } from './src/shared/components/AppErrorBoundary';
+import { ScheduleSyncManager } from './src/features/schedules/offline/ScheduleSyncManager';
 
 const navigationRef = createNavigationContainerRef<ScheduleStackParamList>();
 const linking: LinkingOptions<ScheduleStackParamList> = {
@@ -38,7 +39,12 @@ function AppNavigator() {
 
   return (
     <NavigationContainer ref={navigationRef} linking={linking}>
-      {token ? <RootTabs navigateToGuideTab={navigateToGuideTab} /> : <AuthStack />}
+      {token ? (
+        <>
+          <ScheduleSyncManager />
+          <RootTabs navigateToGuideTab={navigateToGuideTab} />
+        </>
+      ) : <AuthStack />}
     </NavigationContainer>
   );
 }

@@ -12,6 +12,7 @@ import {
 } from '../api/authApi';
 import { setAccessToken, setAuthFailureHandler, setTokenRefreshHandler } from '../../../shared/api/client';
 import type { AuthResponse, LoginRequest, SignupRequest, UserSummary } from '../dto/auth.dto';
+import { setScheduleStorageOwner } from '../../schedules/offline/scheduleOfflineStore';
 
 type AuthContextValue = {
   token: string | null;
@@ -37,6 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null);
     setUser(null);
     setAccessToken(null);
+    await setScheduleStorageOwner(null);
     sessionRef.current = null;
     await Promise.all([
       SecureStore.deleteItemAsync(STORAGE_KEY),
@@ -58,6 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (raw) {
           const session = parseSession(raw);
           if (session) {
+            await setScheduleStorageOwner(session.user.email);
             setToken(session.token);
             setUser(session.user);
             setAccessToken(session.token);
@@ -83,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [clearSession]);
 
   const persist = useCallback(async (session: AuthResponse) => {
+    await setScheduleStorageOwner(session.user.email);
     setToken(session.token);
     setUser(session.user);
     setAccessToken(session.token);

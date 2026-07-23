@@ -13,6 +13,7 @@ import { useSchedules } from '../hooks/useSchedules';
 import { useGuideTarget, useOnboarding } from '../../onboarding/context/OnboardingContext';
 import { getKoreanHolidays } from '../api/scheduleApi';
 import type { Holiday } from '../dto/holiday.dto';
+import { ScheduleSyncBanner } from '../offline/ScheduleSyncBanner';
 
 type Navigation = NativeStackNavigationProp<ScheduleStackParamList>;
 
@@ -61,6 +62,7 @@ export function MonthlyCalendarScreen() {
   return (
     <Screen testID="monthly-calendar-screen">
       <Header eyebrow={'\uC6D4\uAC04 \uCE98\uB9B0\uB354'} title={title} />
+      <ScheduleSyncBanner />
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
       <ScrollView ref={scrollRef} contentContainerStyle={styles.content}>

@@ -284,6 +284,7 @@ AI 요청은 즉시 작업 ID를 반환하고 별도 worker가 처리합니다. 
 - 온프레미스 k3s 배포·백업·복구: `docs/onprem-k3s.md`
 - Prometheus/Grafana 운영: `docs/observability.md`
 - 개인정보·음성·오류 로그 보관 정책: `docs/privacy-and-data-retention.md`
+- 오프라인 일정 저장·재연결 동기화: `docs/offline-schedule-sync.md`
 
 ### Health
 
